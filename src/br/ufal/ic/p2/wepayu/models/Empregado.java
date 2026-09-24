@@ -56,7 +56,4 @@ public abstract class Empregado {
 
     public abstract String getTipo();
 
-    public String getComissao() {
-        throw new UnsupportedOperationException();
-    }
 }
