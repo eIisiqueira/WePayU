@@ -7,6 +7,10 @@ import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoAssalariado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoHorista;
 import br.ufal.ic.p2.wepayu.models.EmpregadoComissionado;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoEmpregadoInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
 
 import java.math.BigDecimal;
 
@@ -20,6 +24,10 @@ public class Facade {
 
     public void zerarSistema() {
         sistema.zerar();
+    }
+
+    public void encerrarSistema() {
+        sistema.salvar();
     }
 
     public String criarEmpregado(
@@ -105,6 +113,34 @@ public class Facade {
         sistema.adicionarEmpregado(empregado);
 
         return id;
+    }
+
+    public String getAtributoEmpregado(
+            String emp,
+            String atributo
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException {
+
+        if (emp == null || emp.isEmpty()) {
+            throw new IdentificacaoEmpregadoInvalidaException();
+        }
+
+        Empregado empregado = sistema.buscarEmpregado(emp);
+
+        if (empregado == null) {
+            throw new EmpregadoNaoExisteException();
+        }
+
+        return empregado.getAtributo(atributo);
+    }
+
+    public String getEmpregadoPorNome(
+            String nome,
+            int indice
+    ) throws EmpregadoNomeNaoExisteException {
+
+        return sistema.buscarEmpregadoPorNome(nome, indice);
     }
 
     private void validarNome(String nome)
