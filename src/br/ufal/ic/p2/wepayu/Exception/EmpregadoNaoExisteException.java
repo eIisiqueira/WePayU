@@ -5,3 +5,4 @@ public class EmpregadoNaoExisteException extends Exception{
         super("Empregado nao existe.");
     }
 }
+

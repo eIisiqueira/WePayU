@@ -1,8 +1,11 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
+import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
+import java.math.RoundingMode;
+import java.io.Serializable;
 
-public abstract class Empregado {
+public abstract class Empregado implements Serializable {
 
     private String id;
     private String nome;
@@ -55,5 +58,37 @@ public abstract class Empregado {
     }
 
     public abstract String getTipo();
+
+    public String getAtributo(String atributo)
+            throws AtributoNaoExisteException {
+
+        switch (atributo) {
+
+            case "nome":
+                return getNome();
+
+            case "endereco":
+                return getEndereco();
+
+            case "tipo":
+                return getTipo();
+
+            case "salario":
+                return formatarValor(getSalario());
+
+            case "sindicalizado":
+                return String.valueOf(isSindicalizado());
+
+            default:
+                throw new AtributoNaoExisteException();
+        }
+    }
+
+    protected String formatarValor(BigDecimal valor) {
+        return valor
+                .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString()
+                .replace(".", ",");
+    }
 
 }
