@@ -26,8 +26,4 @@ public class EmpregadoComissionado extends Empregado {
         return "comissionado";
     }
 
-    @Override
-    public String getComissao() {
-        return comissao.toPlainString();
-    }
 }
