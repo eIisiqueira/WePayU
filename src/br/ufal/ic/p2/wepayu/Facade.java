@@ -14,6 +14,10 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
 
 import java.math.BigDecimal;
 
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
+
 public class Facade {
 
     private final SistemaFolha sistema;
@@ -152,6 +156,66 @@ public class Facade {
     ) throws EmpregadoNomeNaoExisteException {
 
         return sistema.buscarEmpregadoPorNome(nome, indice);
+    }
+
+    public void lancaCartao(
+            String emp,
+            String data,
+            String horas
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoHoristaException,
+            DataInvalidaException,
+            HorasInvalidasException {
+
+        sistema.lancaCartao(
+                emp,
+                data,
+                horas
+        );
+    }
+
+    public String getHorasNormaisTrabalhadas(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoHoristaException,
+            DataInvalidaException {
+
+        return formatarHoras(
+                sistema.getHorasNormaisTrabalhadas(
+                        emp,
+                        dataInicial,
+                        dataFinal
+                )
+        );
+    }
+
+    public String getHorasExtrasTrabalhadas(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoHoristaException,
+            DataInvalidaException {
+
+        return formatarHoras(
+                sistema.getHorasExtrasTrabalhadas(
+                        emp,
+                        dataInicial,
+                        dataFinal
+                )
+        );
+    }
+
+    private String formatarHoras(BigDecimal horas) {
+        return horas
+                .stripTrailingZeros()
+                .toPlainString()
+                .replace(".", ",");
     }
 
     private void validarNome(String nome)
