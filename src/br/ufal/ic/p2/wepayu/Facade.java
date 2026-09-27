@@ -25,6 +25,9 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.Exception.ValorSindicalizadoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -265,7 +268,10 @@ public class Facade {
             EmpregadoInvalidoException,
             SalarioInvalidoException,
             ComissaoInvalidaException,
-            EmpregadoNaoComissionadoException {
+            EmpregadoNaoComissionadoException,
+            ValorSindicalizadoInvalidoException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException {
 
         switch (atributo) {
 
@@ -290,9 +296,11 @@ public class Facade {
                 return;
 
             case "sindicalizado":
+                boolean sindicalizado = validarSindicalizado(valor);
+
                 sistema.alteraEmpregadoSindicalizado(
                         emp,
-                        Boolean.parseBoolean(valor),
+                        sindicalizado,
                         null,
                         null
                 );
@@ -321,15 +329,20 @@ public class Facade {
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
             AtributoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            ValorSindicalizadoInvalidoException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException {
 
         if (!"sindicalizado".equals(atributo)) {
             throw new AtributoNaoExisteException();
         }
 
+        boolean sindicalizado = validarSindicalizado(valor);
+
         sistema.alteraEmpregadoSindicalizado(
                 emp,
-                Boolean.parseBoolean(valor),
+                sindicalizado,
                 idSindicato,
                 taxaSindical
         );
@@ -550,6 +563,16 @@ public class Facade {
                 .stripTrailingZeros()
                 .toPlainString()
                 .replace(".", ",");
+    }
+
+    private boolean validarSindicalizado(String valor)
+            throws ValorSindicalizadoInvalidoException {
+
+        if (!"true".equals(valor) && !"false".equals(valor)) {
+            throw new ValorSindicalizadoInvalidoException();
+        }
+
+        return Boolean.parseBoolean(valor);
     }
 
     private void validarNome(String nome)

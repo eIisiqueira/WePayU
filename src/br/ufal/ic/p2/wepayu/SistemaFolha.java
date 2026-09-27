@@ -19,6 +19,9 @@ import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -87,7 +90,9 @@ public class SistemaFolha {
             String taxaSindical
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException {
 
         Empregado empregado = buscarEmpregadoObrigatorio(emp);
 
@@ -96,14 +101,39 @@ public class SistemaFolha {
             return;
         }
 
-        BigDecimal valorTaxaSindical = new BigDecimal(
-                taxaSindical.replace(",", ".")
-        );
+        if (idSindicato == null || idSindicato.isEmpty()) {
+            throw new IdentificacaoSindicatoInvalidaException();
+        }
+
+        if (taxaSindical == null || taxaSindical.isEmpty()) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical nao pode ser nula."
+            );
+        }
+
+        BigDecimal valorTaxaSindical;
+
+        try {
+            valorTaxaSindical = new BigDecimal(
+                    taxaSindical.replace(",", ".")
+            );
+        } catch (NumberFormatException e) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical deve ser numerica."
+            );
+        }
+
+        if (valorTaxaSindical.compareTo(BigDecimal.ZERO) < 0) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical deve ser nao-negativa."
+            );
+        }
 
         for (Empregado outro : empregados.values()) {
             if (outro != empregado
                     && outro.isSindicalizado()
                     && idSindicato.equals(outro.getIdSindicato())) {
+
                 throw new IdentificacaoSindicatoDuplicadaException();
             }
         }
@@ -113,7 +143,6 @@ public class SistemaFolha {
                 valorTaxaSindical
         );
     }
-
     public void lancaTaxaServico(
             String membro,
             String data,
