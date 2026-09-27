@@ -336,6 +336,18 @@ public class Facade {
         }
     }
 
+    /**
+     * Altera o tipo do empregado quando a nova categoria exige
+     * um valor adicional.
+     *
+     * Nesta sobrecarga, o valor adicional representa a comissão para
+     * empregados comissionados ou o salário para empregados horistas.
+     *
+     * @param emp identificador do empregado
+     * @param atributo atributo a ser alterado
+     * @param valor novo tipo do empregado
+     * @param valorExtra valor adicional exigido pelo novo tipo
+     */
     public void alteraEmpregado(
             String emp,
             String atributo,
@@ -418,6 +430,17 @@ public class Facade {
         );
     }
 
+    /**
+     * Configura o método de pagamento do empregado como depósito bancário,
+     * utilizando os dados da conta informados.
+     *
+     * @param emp identificador do empregado
+     * @param atributo atributo a ser alterado
+     * @param valor1 método de pagamento, que deve ser "banco"
+     * @param banco nome do banco
+     * @param agencia agência bancária
+     * @param contaCorrente conta corrente
+     */
     public void alteraEmpregado(
             String emp,
             String atributo,

@@ -11,11 +11,10 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
- * Representa um empregado comissionado, que possui salário base
- * e uma taxa de comissão associada.
+ * Representa um empregado comissionado, que possui salário base,
+ * taxa de comissão e resultados de vendas associados.
  *
- * Especializa a consulta de atributos do empregado para disponibilizar
- * também o valor da comissão.
+ * Permite registrar vendas e consultar o total vendido em um período.
  */
 
 public class EmpregadoComissionado extends Empregado {
@@ -66,10 +65,12 @@ public class EmpregadoComissionado extends Empregado {
     }
 
     /**
-     * Representa um empregado comissionado, que possui salário base,
-     * taxa de comissão e resultados de vendas associados.
+     * Soma os valores das vendas realizadas no período informado.
+     * A data inicial é incluída e a data final é excluída.
      *
-     * Permite registrar vendas e consultar o total vendido em um período.
+     * @param dataInicial início inclusivo do período
+     * @param dataFinal fim exclusivo do período
+     * @return total vendido no período
      */
     @Override
     public BigDecimal getVendasRealizadas(

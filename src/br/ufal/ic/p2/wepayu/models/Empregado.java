@@ -121,6 +121,15 @@ public abstract class Empregado implements Serializable {
         this.taxaSindical = null;
     }
 
+    /**
+     * Copia para outro empregado o estado comum que deve ser preservado
+     * durante uma mudança de tipo.
+     *
+     * São preservadas as informações sindicais, taxas de serviço
+     * e dados do método de pagamento.
+     *
+     * @param destino empregado que receberá o estado comum
+     */
     public void copiarEstadoComumPara(Empregado destino) {
         destino.sindicalizado = this.sindicalizado;
         destino.idSindicato = this.idSindicato;
@@ -138,6 +147,14 @@ public abstract class Empregado implements Serializable {
         taxasServico.add(new TaxaServico(data, valor));
     }
 
+    /**
+     * Soma as taxas de serviço registradas no período informado.
+     * A data inicial é incluída e a data final é excluída.
+     *
+     * @param dataInicial início inclusivo do período
+     * @param dataFinal fim exclusivo do período
+     * @return total das taxas de serviço
+     */
     public BigDecimal getTaxasServico(
             LocalDate dataInicial,
             LocalDate dataFinal
