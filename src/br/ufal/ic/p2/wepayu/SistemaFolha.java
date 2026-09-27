@@ -21,6 +21,10 @@ import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
 
 
 import java.math.BigDecimal;
@@ -657,6 +661,65 @@ public class SistemaFolha {
 
         Empregado empregado = buscarEmpregadoObrigatorio(emp);
         empregado.alterarComissao(comissao);
+    }
+
+    public void alterarMetodoPagamento(
+            String emp,
+            String metodoPagamento
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            MetodoPagamentoInvalidoException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        switch (metodoPagamento) {
+
+            case "emMaos":
+                empregado.configurarPagamentoEmMaos();
+                return;
+
+            case "correios":
+                empregado.configurarPagamentoCorreios();
+                return;
+
+            case "banco":
+                throw new MetodoPagamentoInvalidoException();
+
+            default:
+                throw new MetodoPagamentoInvalidoException();
+        }
+    }
+
+    public void alterarMetodoPagamentoBanco(
+            String emp,
+            String banco,
+            String agencia,
+            String contaCorrente
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            BancoInvalidoException,
+            AgenciaInvalidaException,
+            ContaCorrenteInvalidaException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        if (banco == null || banco.isEmpty()) {
+            throw new BancoInvalidoException();
+        }
+
+        if (agencia == null || agencia.isEmpty()) {
+            throw new AgenciaInvalidaException();
+        }
+
+        if (contaCorrente == null || contaCorrente.isEmpty()) {
+            throw new ContaCorrenteInvalidaException();
+        }
+
+        empregado.configurarPagamentoBanco(
+                banco,
+                agencia,
+                contaCorrente
+        );
     }
 
 }

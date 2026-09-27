@@ -28,6 +28,7 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
 import br.ufal.ic.p2.wepayu.Exception.ValorSindicalizadoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -271,7 +272,8 @@ public class Facade {
             EmpregadoNaoComissionadoException,
             ValorSindicalizadoInvalidoException,
             IdentificacaoSindicatoInvalidaException,
-            TaxaSindicalInvalidaException {
+            TaxaSindicalInvalidaException,
+            MetodoPagamentoInvalidoException {
 
         switch (atributo) {
 
@@ -293,6 +295,10 @@ public class Facade {
             case "comissao":
                 BigDecimal comissao = validarComissao(valor);
                 sistema.alterarComissao(emp, comissao);
+                return;
+
+            case "metodoPagamento":
+                sistema.alterarMetodoPagamento(emp, valor);
                 return;
 
             case "sindicalizado":
