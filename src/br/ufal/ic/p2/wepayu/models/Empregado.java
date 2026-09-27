@@ -121,6 +121,19 @@ public abstract class Empregado implements Serializable {
         this.taxaSindical = null;
     }
 
+    public void copiarEstadoComumPara(Empregado destino) {
+        destino.sindicalizado = this.sindicalizado;
+        destino.idSindicato = this.idSindicato;
+        destino.taxaSindical = this.taxaSindical;
+
+        destino.taxasServico.addAll(this.taxasServico);
+
+        destino.metodoPagamento = this.metodoPagamento;
+        destino.banco = this.banco;
+        destino.agencia = this.agencia;
+        destino.contaCorrente = this.contaCorrente;
+    }
+
     public void lancaTaxaServico(LocalDate data, BigDecimal valor) {
         taxasServico.add(new TaxaServico(data, valor));
     }
