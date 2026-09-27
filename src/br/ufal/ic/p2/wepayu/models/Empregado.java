@@ -7,6 +7,14 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 
+/**
+ * Classe base abstrata da hierarquia de empregados do sistema.
+ *
+ * Concentra os dados e comportamentos comuns aos diferentes tipos de
+ * empregado e define operações que podem ser especializadas
+ * polimorficamente pelas subclasses.
+ */
+
 public abstract class Empregado implements Serializable {
 
     private String id;
@@ -93,12 +101,36 @@ public abstract class Empregado implements Serializable {
                 .replace(".", ",");
     }
 
+    /**
+     * Define a operação polimórfica de lançamento de cartão de ponto.
+     *
+     * Na implementação base, a operação é rejeitada. Subclasses que
+     * suportam cartões de ponto devem sobrescrever este comportamento.
+     *
+     * @param data data do cartão de ponto
+     * @param horas quantidade de horas trabalhadas
+     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
+     *                                      não suporta cartão de ponto
+     */
     public void lancaCartao(LocalDate data, BigDecimal horas)
             throws EmpregadoNaoHoristaException {
 
         throw new EmpregadoNaoHoristaException();
     }
 
+    /**
+     * Define a consulta polimórfica das horas normais trabalhadas
+     * em determinado intervalo.
+     *
+     * Na implementação base, a consulta é rejeitada. Subclasses que
+     * controlam horas trabalhadas devem sobrescrever este comportamento.
+     *
+     * @param dataInicial início do intervalo
+     * @param dataFinal fim do intervalo
+     * @return total de horas normais trabalhadas
+     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
+     *                                      não suporta essa consulta
+     */
     public BigDecimal getHorasNormaisTrabalhadas(
             LocalDate dataInicial,
             LocalDate dataFinal
@@ -107,6 +139,19 @@ public abstract class Empregado implements Serializable {
         throw new EmpregadoNaoHoristaException();
     }
 
+    /**
+     * Define a consulta polimórfica das horas extras trabalhadas
+     * em determinado intervalo.
+     *
+     * Na implementação base, a consulta é rejeitada. Subclasses que
+     * controlam horas trabalhadas devem sobrescrever este comportamento.
+     *
+     * @param dataInicial início do intervalo
+     * @param dataFinal fim do intervalo
+     * @return total de horas extras trabalhadas
+     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
+     *                                      não suporta essa consulta
+     */
     public BigDecimal getHorasExtrasTrabalhadas(
             LocalDate dataInicial,
             LocalDate dataFinal
