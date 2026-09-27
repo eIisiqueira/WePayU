@@ -58,6 +58,8 @@ public class SistemaFolha {
 
         empregados.remove(id);
 
+    }
+
     public void lancaCartao(
             String emp,
             String data,
