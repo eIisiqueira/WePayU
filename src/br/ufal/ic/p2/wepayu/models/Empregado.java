@@ -102,12 +102,31 @@ public abstract class Empregado implements Serializable {
                 .replace(".", ",");
     }
 
+    /**
+     * Define a operação polimórfica de lançamento de venda.
+     * A implementação padrão rejeita a operação para empregados
+     * que não são comissionados.
+     *
+     * @param data data da venda
+     * @param valor valor da venda
+     * @throws EmpregadoNaoComissionadoException se o empregado não suportar vendas
+     */
     public void lancaVenda(LocalDate data, BigDecimal valor)
             throws EmpregadoNaoComissionadoException {
 
         throw new EmpregadoNaoComissionadoException();
     }
 
+    /**
+     * Define a consulta polimórfica das vendas realizadas em um período.
+     * A implementação padrão rejeita a consulta para empregados
+     * que não são comissionados.
+     *
+     * @param dataInicial início do período
+     * @param dataFinal fim do período
+     * @return total das vendas realizadas
+     * @throws EmpregadoNaoComissionadoException se o empregado não suportar vendas
+     */
     public BigDecimal getVendasRealizadas(
             LocalDate dataInicial,
             LocalDate dataFinal

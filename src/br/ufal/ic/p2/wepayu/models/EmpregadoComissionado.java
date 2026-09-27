@@ -53,6 +53,12 @@ public class EmpregadoComissionado extends Empregado {
         vendas.add(new ResultadoVenda(data, valor));
     }
 
+    /**
+     * Representa um empregado comissionado, que possui salário base,
+     * taxa de comissão e resultados de vendas associados.
+     *
+     * Permite registrar vendas e consultar o total vendido em um período.
+     */
     @Override
     public BigDecimal getVendasRealizadas(
             LocalDate dataInicial,

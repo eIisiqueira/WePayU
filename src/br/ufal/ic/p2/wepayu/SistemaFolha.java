@@ -75,6 +75,15 @@ public class SistemaFolha {
 
     }
 
+
+    /**
+     * Localiza o empregado, converte os dados da venda e delega
+     * o lançamento ao próprio empregado.
+     *
+     * @param emp identificador do empregado
+     * @param data data da venda
+     * @param valor valor da venda
+     */
     public void lancaVenda(
             String emp,
             String data,
@@ -99,6 +108,15 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Valida o período informado e delega ao empregado a obtenção
+     * do valor total das vendas realizadas.
+     *
+     * @param emp identificador do empregado
+     * @param dataInicial início do período
+     * @param dataFinal fim do período
+     * @return total das vendas realizadas no período
+     */
     public BigDecimal getVendasRealizadas(
             String emp,
             String dataInicial,

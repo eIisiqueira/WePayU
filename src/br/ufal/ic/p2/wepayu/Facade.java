@@ -235,6 +235,19 @@ public class Facade {
         return sistema.buscarEmpregadoPorNome(nome, indice);
     }
 
+    /**
+     * Registra um resultado de venda para o empregado informado,
+     * delegando a operação ao sistema de folha.
+     *
+     * @param emp identificador do empregado
+     * @param data data da venda
+     * @param valor valor da venda
+     * @throws IdentificacaoEmpregadoInvalidaException se o identificador for inválido
+     * @throws EmpregadoNaoExisteException se o empregado não existir
+     * @throws EmpregadoNaoComissionadoException se o empregado não for comissionado
+     * @throws DataInvalidaException se a data for inválida
+     * @throws ValorVendaInvalidoException se o valor da venda for inválido
+     */
     public void lancaVenda(
             String emp,
             String data,
@@ -252,6 +265,18 @@ public class Facade {
         );
     }
 
+    /**
+     * Consulta o valor total das vendas do empregado no período informado.
+     *
+     * @param emp identificador do empregado
+     * @param dataInicial início do período
+     * @param dataFinal fim do período
+     * @return total das vendas no formato monetário esperado pela interface
+     * @throws IdentificacaoEmpregadoInvalidaException se o identificador for inválido
+     * @throws EmpregadoNaoExisteException se o empregado não existir
+     * @throws EmpregadoNaoComissionadoException se o empregado não for comissionado
+     * @throws DataInvalidaException se as datas ou o período forem inválidos
+     */
     public String getVendasRealizadas(
             String emp,
             String dataInicial,
