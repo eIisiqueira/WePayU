@@ -19,6 +19,11 @@ import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
 import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoMembroInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
+import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -233,6 +238,115 @@ public class Facade {
     ) throws EmpregadoNomeNaoExisteException {
 
         return sistema.buscarEmpregadoPorNome(nome, indice);
+    }
+
+    /**
+     * Altera somente o vínculo sindical necessário à US5.
+     *
+     * @param emp identificador do empregado na folha
+     * @param atributo atributo a ser alterado
+     * @param valor novo valor do atributo
+     */
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException,
+            IdentificacaoSindicatoDuplicadaException {
+
+        if (!"sindicalizado".equals(atributo)) {
+            throw new AtributoNaoExisteException();
+        }
+
+        sistema.alteraEmpregadoSindicalizado(
+                emp,
+                Boolean.parseBoolean(valor),
+                null,
+                null
+        );
+    }
+
+    /**
+     * Configura a sindicalização de um empregado com identificação e taxa sindical.
+     *
+     * @param emp identificador do empregado na folha
+     * @param atributo atributo a ser alterado
+     * @param valor novo valor do atributo
+     * @param idSindicato identificação do empregado no sindicato
+     * @param taxaSindical taxa sindical do empregado
+     */
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor,
+            String idSindicato,
+            String taxaSindical
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException,
+            IdentificacaoSindicatoDuplicadaException {
+
+        if (!"sindicalizado".equals(atributo)) {
+            throw new AtributoNaoExisteException();
+        }
+
+        sistema.alteraEmpregadoSindicalizado(
+                emp,
+                Boolean.parseBoolean(valor),
+                idSindicato,
+                taxaSindical
+        );
+    }
+
+    /**
+     * Lança uma taxa de serviço para um membro identificado pelo ID sindical.
+     *
+     * @param membro identificação do empregado no sindicato
+     * @param data data da taxa de serviço
+     * @param valor valor da taxa de serviço
+     */
+    public void lancaTaxaServico(
+            String membro,
+            String data,
+            String valor
+    ) throws IdentificacaoMembroInvalidaException,
+            MembroNaoExisteException,
+            DataInvalidaException,
+            ValorTaxaServicoInvalidoException {
+
+        sistema.lancaTaxaServico(
+                membro,
+                data,
+                valor
+        );
+    }
+
+    /**
+     * Consulta a soma das taxas de serviço de um empregado no período informado.
+     *
+     * @param emp identificador do empregado na folha
+     * @param dataInicial início inclusivo do período
+     * @param dataFinal fim exclusivo do período
+     * @return total das taxas formatado como valor monetário
+     */
+    public String getTaxasServico(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoSindicalizadoException,
+            DataInvalidaException {
+
+        return Empregado.formatarValor(
+                sistema.getTaxasServico(
+                        emp,
+                        dataInicial,
+                        dataFinal
+                )
+        );
     }
 
     /**

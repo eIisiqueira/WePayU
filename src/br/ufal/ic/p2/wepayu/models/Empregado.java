@@ -5,6 +5,8 @@ import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import java.math.RoundingMode;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
 
@@ -23,6 +25,9 @@ public abstract class Empregado implements Serializable {
     private String endereco;
     private BigDecimal salario;
     private boolean sindicalizado;
+    private String idSindicato;
+    private BigDecimal taxaSindical;
+    private final List<TaxaServico> taxasServico = new ArrayList<>();
 
     public Empregado(String id, String nome, String endereco, BigDecimal salario) {
         this.id = id;
@@ -52,6 +57,10 @@ public abstract class Empregado implements Serializable {
         return sindicalizado;
     }
 
+    public String getIdSindicato() {
+        return idSindicato;
+    }
+
     public void setNome(String nome) {
         this.nome = nome;
     }
@@ -66,6 +75,39 @@ public abstract class Empregado implements Serializable {
 
     public void setSindicalizado(boolean sindicalizado) {
         this.sindicalizado = sindicalizado;
+    }
+
+    public void sindicalizar(String idSindicato, BigDecimal taxaSindical) {
+        this.sindicalizado = true;
+        this.idSindicato = idSindicato;
+        this.taxaSindical = taxaSindical;
+    }
+
+    public void dessindicalizar() {
+        this.sindicalizado = false;
+        this.idSindicato = null;
+        this.taxaSindical = null;
+    }
+
+    public void lancaTaxaServico(LocalDate data, BigDecimal valor) {
+        taxasServico.add(new TaxaServico(data, valor));
+    }
+
+    public BigDecimal getTaxasServico(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (TaxaServico taxa : taxasServico) {
+            LocalDate data = taxa.getData();
+
+            if (!data.isBefore(dataInicial) && data.isBefore(dataFinal)) {
+                total = total.add(taxa.getValor());
+            }
+        }
+
+        return total;
     }
 
     public abstract String getTipo();

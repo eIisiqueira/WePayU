@@ -14,6 +14,11 @@ import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
 import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoMembroInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
+import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -73,6 +78,96 @@ public class SistemaFolha {
 
         empregados.remove(id);
 
+    }
+
+    public void alteraEmpregadoSindicalizado(
+            String emp,
+            boolean sindicalizado,
+            String idSindicato,
+            String taxaSindical
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            IdentificacaoSindicatoDuplicadaException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        if (!sindicalizado) {
+            empregado.dessindicalizar();
+            return;
+        }
+
+        BigDecimal valorTaxaSindical = new BigDecimal(
+                taxaSindical.replace(",", ".")
+        );
+
+        for (Empregado outro : empregados.values()) {
+            if (outro != empregado
+                    && outro.isSindicalizado()
+                    && idSindicato.equals(outro.getIdSindicato())) {
+                throw new IdentificacaoSindicatoDuplicadaException();
+            }
+        }
+
+        empregado.sindicalizar(
+                idSindicato,
+                valorTaxaSindical
+        );
+    }
+
+    public void lancaTaxaServico(
+            String membro,
+            String data,
+            String valor
+    ) throws IdentificacaoMembroInvalidaException,
+            MembroNaoExisteException,
+            DataInvalidaException,
+            ValorTaxaServicoInvalidoException {
+
+        Empregado empregado = buscarMembroSindicatoObrigatorio(membro);
+
+        LocalDate dataTaxa =
+                converterData(data, "Data invalida.");
+
+        BigDecimal valorTaxa =
+                converterValorTaxaServico(valor);
+
+        empregado.lancaTaxaServico(
+                dataTaxa,
+                valorTaxa
+        );
+    }
+
+    public BigDecimal getTaxasServico(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoSindicalizadoException,
+            DataInvalidaException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        if (!empregado.isSindicalizado()) {
+            throw new EmpregadoNaoSindicalizadoException();
+        }
+
+        LocalDate inicio = converterData(
+                dataInicial,
+                "Data inicial invalida."
+        );
+
+        LocalDate fim = converterData(
+                dataFinal,
+                "Data final invalida."
+        );
+
+        validarIntervalo(inicio, fim);
+
+        return empregado.getTaxasServico(
+                inicio,
+                fim
+        );
     }
 
 
@@ -282,6 +377,24 @@ public class SistemaFolha {
         );
     }
 
+    private Empregado buscarMembroSindicatoObrigatorio(String membro)
+            throws IdentificacaoMembroInvalidaException,
+            MembroNaoExisteException {
+
+        if (membro == null || membro.isEmpty()) {
+            throw new IdentificacaoMembroInvalidaException();
+        }
+
+        for (Empregado empregado : empregados.values()) {
+            if (empregado.isSindicalizado()
+                    && membro.equals(empregado.getIdSindicato())) {
+                return empregado;
+            }
+        }
+
+        throw new MembroNaoExisteException();
+    }
+
     private Empregado buscarEmpregadoObrigatorio(String id)
             throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException {
@@ -349,6 +462,26 @@ public class SistemaFolha {
 
         if (valorConvertido.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValorVendaInvalidoException();
+        }
+
+        return valorConvertido;
+    }
+
+    private BigDecimal converterValorTaxaServico(String valor)
+            throws ValorTaxaServicoInvalidoException {
+
+        BigDecimal valorConvertido;
+
+        try {
+            valorConvertido = new BigDecimal(
+                    valor.replace(",", ".")
+            );
+        } catch (NumberFormatException | NullPointerException e) {
+            throw new ValorTaxaServicoInvalidoException();
+        }
+
+        if (valorConvertido.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValorTaxaServicoInvalidoException();
         }
 
         return valorConvertido;
