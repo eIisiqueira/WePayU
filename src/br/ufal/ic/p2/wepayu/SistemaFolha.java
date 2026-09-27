@@ -198,6 +198,16 @@ public class SistemaFolha {
                     "Data inicial nao pode ser posterior aa data final."
             );
         }
+
+    public void removerEmpregado(String id)
+            throws EmpregadoNaoExisteException {
+
+        if (!empregados.containsKey(id)) {
+            throw new EmpregadoNaoExisteException();
+        }
+
+        empregados.remove(id);
+
     }
 
     public void salvar() {
@@ -267,6 +277,7 @@ public class SistemaFolha {
                 }
             }
         }
+
 
         throw new EmpregadoNomeNaoExisteException();
     }

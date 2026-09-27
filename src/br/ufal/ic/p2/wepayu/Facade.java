@@ -139,6 +139,17 @@ public class Facade {
         return empregado.getAtributo(atributo);
     }
 
+    public void removerEmpregado(String emp)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        if (emp == null || emp.isEmpty()) {
+            throw new IdentificacaoEmpregadoInvalidaException();
+        }
+
+        sistema.removerEmpregado(emp);
+    }
+
     public String getEmpregadoPorNome(
             String nome,
             int indice
