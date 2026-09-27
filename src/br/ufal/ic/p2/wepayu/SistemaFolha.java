@@ -4,10 +4,18 @@ import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoAssalariado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoHorista;
 import br.ufal.ic.p2.wepayu.models.EmpregadoComissionado;
+import br.ufal.ic.p2.wepayu.models.Contracheque;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
@@ -47,6 +55,10 @@ import java.time.format.ResolverStyle;
 public class SistemaFolha {
 
     private static final String ARQUIVO_DADOS = "wepayu.dat";
+
+    private static final String QUEBRA_LINHA = "\n";
+
+    private static final String SEPARADOR = "=".repeat(127);
 
     private static final DateTimeFormatter FORMATO_DATA =
             DateTimeFormatter.ofPattern("d/M/uuuu")
@@ -442,6 +454,323 @@ public class SistemaFolha {
                 inicio,
                 fim
         );
+    }
+
+    public BigDecimal totalFolha(String data)
+            throws DataInvalidaException {
+
+        LocalDate dataFolha = converterData(
+                data,
+                "Data invalida."
+        );
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Contracheque contracheque :
+                calcularContracheques(dataFolha)) {
+
+            total = total.add(
+                    contracheque.getSalarioBruto()
+            );
+        }
+
+        return total;
+    }
+
+    public void rodaFolha(String data, String saida)
+            throws DataInvalidaException {
+
+        LocalDate dataFolha = converterData(
+                data,
+                "Data invalida."
+        );
+
+        List<Contracheque> contracheques =
+                calcularContracheques(dataFolha);
+
+        String conteudo = montarRelatorio(
+                dataFolha,
+                contracheques
+        );
+
+        try {
+            Files.write(
+                    Paths.get(saida),
+                    conteudo.getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (IOException | RuntimeException e) {
+            throw new PersistenciaException(
+                    "Erro ao gerar folha."
+            );
+        }
+    }
+
+    private List<Contracheque> calcularContracheques(
+            LocalDate dataFolha
+    ) {
+        List<Contracheque> contracheques =
+                new ArrayList<>();
+
+        for (Empregado empregado : empregados.values()) {
+            if (empregado.deveReceberEm(dataFolha)) {
+                contracheques.add(
+                        empregado.calcularContracheque(dataFolha)
+                );
+            }
+        }
+
+        contracheques.sort(
+                Comparator.comparing(
+                        contracheque ->
+                                contracheque
+                                        .getEmpregado()
+                                        .getNome()
+                )
+        );
+
+        return contracheques;
+    }
+
+    private String montarRelatorio(
+            LocalDate dataFolha,
+            List<Contracheque> contracheques
+    ) {
+        List<Contracheque> horistas =
+                filtrarSecao(contracheques, "HORISTAS");
+
+        List<Contracheque> assalariados =
+                filtrarSecao(contracheques, "ASSALARIADOS");
+
+        List<Contracheque> comissionados =
+                filtrarSecao(contracheques, "COMISSIONADOS");
+
+        StringBuilder relatorio = new StringBuilder();
+
+        String dataFormatada = dataFolha.toString();
+        String cabecalho =
+                "FOLHA DE PAGAMENTO DO DIA " + dataFormatada;
+
+        relatorio.append(cabecalho).append(QUEBRA_LINHA);
+        relatorio.append("=".repeat(cabecalho.length()))
+                .append(QUEBRA_LINHA);
+        relatorio.append(QUEBRA_LINHA);
+
+        relatorio.append(montarSecaoHoristas(horistas));
+        relatorio.append(montarSecaoAssalariados(assalariados));
+        relatorio.append(montarSecaoComissionados(comissionados));
+
+        BigDecimal totalFolha = BigDecimal.ZERO;
+
+        for (Contracheque contracheque : contracheques) {
+            totalFolha = totalFolha.add(
+                    contracheque.getSalarioBruto()
+            );
+        }
+
+        relatorio.append("TOTAL FOLHA: ")
+                .append(Empregado.formatarValor(totalFolha))
+                .append(QUEBRA_LINHA);
+
+        return relatorio.toString();
+    }
+
+    private List<Contracheque> filtrarSecao(
+            List<Contracheque> contracheques,
+            String secao
+    ) {
+        List<Contracheque> resultado = new ArrayList<>();
+
+        for (Contracheque contracheque : contracheques) {
+            if (secao.equals(
+                    contracheque
+                            .getEmpregado()
+                            .getSecaoFolha()
+            )) {
+                resultado.add(contracheque);
+            }
+        }
+
+        return resultado;
+    }
+
+    private String montarSecaoHoristas(
+            List<Contracheque> contracheques
+    ) {
+        StringBuilder secao = new StringBuilder();
+
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(linhaTituloSecao("HORISTAS"))
+                .append(QUEBRA_LINHA);
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(
+                "Nome                                 Horas Extra Salario Bruto Descontos Salario Liquido Metodo"
+        ).append(QUEBRA_LINHA);
+        secao.append(
+                "==================================== ===== ===== ============= ========= =============== ======================================"
+        ).append(QUEBRA_LINHA);
+
+        BigDecimal totalHoras = BigDecimal.ZERO;
+        BigDecimal totalExtras = BigDecimal.ZERO;
+        BigDecimal totalBruto = BigDecimal.ZERO;
+        BigDecimal totalDescontos = BigDecimal.ZERO;
+        BigDecimal totalLiquido = BigDecimal.ZERO;
+
+        for (Contracheque contracheque : contracheques) {
+            secao.append(
+                    contracheque
+                            .getEmpregado()
+                            .formatarLinhaFolha(contracheque)
+            ).append(QUEBRA_LINHA);
+
+            totalHoras = totalHoras.add(
+                    contracheque.getHorasNormais()
+            );
+            totalExtras = totalExtras.add(
+                    contracheque.getHorasExtras()
+            );
+            totalBruto = totalBruto.add(
+                    contracheque.getSalarioBruto()
+            );
+            totalDescontos = totalDescontos.add(
+                    contracheque.getDescontos()
+            );
+            totalLiquido = totalLiquido.add(
+                    contracheque.getSalarioLiquido()
+            );
+        }
+
+        secao.append(QUEBRA_LINHA);
+        secao.append(String.format(
+                "%-36s %5s %5s %13s %9s %15s",
+                "TOTAL HORISTAS",
+                Empregado.formatarNumero(totalHoras),
+                Empregado.formatarNumero(totalExtras),
+                Empregado.formatarValor(totalBruto),
+                Empregado.formatarValor(totalDescontos),
+                Empregado.formatarValor(totalLiquido)
+        )).append(QUEBRA_LINHA);
+        secao.append(QUEBRA_LINHA);
+
+        return secao.toString();
+    }
+
+    private String montarSecaoAssalariados(
+            List<Contracheque> contracheques
+    ) {
+        StringBuilder secao = new StringBuilder();
+
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(linhaTituloSecao("ASSALARIADOS"))
+                .append(QUEBRA_LINHA);
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(
+                "Nome                                             Salario Bruto Descontos Salario Liquido Metodo"
+        ).append(QUEBRA_LINHA);
+        secao.append(
+                "================================================ ============= ========= =============== ======================================"
+        ).append(QUEBRA_LINHA);
+
+        BigDecimal totalBruto = BigDecimal.ZERO;
+        BigDecimal totalDescontos = BigDecimal.ZERO;
+        BigDecimal totalLiquido = BigDecimal.ZERO;
+
+        for (Contracheque contracheque : contracheques) {
+            secao.append(
+                    contracheque
+                            .getEmpregado()
+                            .formatarLinhaFolha(contracheque)
+            ).append(QUEBRA_LINHA);
+
+            totalBruto = totalBruto.add(
+                    contracheque.getSalarioBruto()
+            );
+            totalDescontos = totalDescontos.add(
+                    contracheque.getDescontos()
+            );
+            totalLiquido = totalLiquido.add(
+                    contracheque.getSalarioLiquido()
+            );
+        }
+
+        secao.append(QUEBRA_LINHA);
+        secao.append(String.format(
+                "%-48s %13s %9s %15s",
+                "TOTAL ASSALARIADOS",
+                Empregado.formatarValor(totalBruto),
+                Empregado.formatarValor(totalDescontos),
+                Empregado.formatarValor(totalLiquido)
+        )).append(QUEBRA_LINHA);
+        secao.append(QUEBRA_LINHA);
+
+        return secao.toString();
+    }
+
+    private String montarSecaoComissionados(
+            List<Contracheque> contracheques
+    ) {
+        StringBuilder secao = new StringBuilder();
+
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(linhaTituloSecao("COMISSIONADOS"))
+                .append(QUEBRA_LINHA);
+        secao.append(SEPARADOR).append(QUEBRA_LINHA);
+        secao.append(
+                "Nome                  Fixo     Vendas   Comissao Salario Bruto Descontos Salario Liquido Metodo"
+        ).append(QUEBRA_LINHA);
+        secao.append(
+                "===================== ======== ======== ======== ============= ========= =============== ======================================"
+        ).append(QUEBRA_LINHA);
+
+        BigDecimal totalFixo = BigDecimal.ZERO;
+        BigDecimal totalVendas = BigDecimal.ZERO;
+        BigDecimal totalComissao = BigDecimal.ZERO;
+        BigDecimal totalBruto = BigDecimal.ZERO;
+        BigDecimal totalDescontos = BigDecimal.ZERO;
+        BigDecimal totalLiquido = BigDecimal.ZERO;
+
+        for (Contracheque contracheque : contracheques) {
+            secao.append(
+                    contracheque
+                            .getEmpregado()
+                            .formatarLinhaFolha(contracheque)
+            ).append(QUEBRA_LINHA);
+
+            totalFixo = totalFixo.add(contracheque.getFixo());
+            totalVendas = totalVendas.add(contracheque.getVendas());
+            totalComissao = totalComissao.add(
+                    contracheque.getComissao()
+            );
+            totalBruto = totalBruto.add(
+                    contracheque.getSalarioBruto()
+            );
+            totalDescontos = totalDescontos.add(
+                    contracheque.getDescontos()
+            );
+            totalLiquido = totalLiquido.add(
+                    contracheque.getSalarioLiquido()
+            );
+        }
+
+        secao.append(QUEBRA_LINHA);
+        secao.append(String.format(
+                "%-21s %8s %8s %8s %13s %9s %15s",
+                "TOTAL COMISSIONADOS",
+                Empregado.formatarValor(totalFixo),
+                Empregado.formatarValor(totalVendas),
+                Empregado.formatarValor(totalComissao),
+                Empregado.formatarValor(totalBruto),
+                Empregado.formatarValor(totalDescontos),
+                Empregado.formatarValor(totalLiquido)
+        )).append(QUEBRA_LINHA);
+        secao.append(QUEBRA_LINHA);
+
+        return secao.toString();
+    }
+
+    private String linhaTituloSecao(String titulo) {
+        String inicio = "=".repeat(21) + " " + titulo + " ";
+
+        return inicio + "=".repeat(127 - inicio.length());
     }
 
     private Empregado buscarMembroSindicatoObrigatorio(String membro)

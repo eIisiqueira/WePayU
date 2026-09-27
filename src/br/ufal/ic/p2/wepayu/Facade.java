@@ -57,6 +57,20 @@ public class Facade {
         sistema.salvar();
     }
 
+    public String totalFolha(String data)
+            throws DataInvalidaException {
+
+        return Empregado.formatarValor(
+                sistema.totalFolha(data)
+        );
+    }
+
+    public void rodaFolha(String data, String saida)
+            throws DataInvalidaException {
+
+        sistema.rodaFolha(data, saida);
+    }
+
     /**
      * Cria e registra um empregado horista ou assalariado no sistema.
      *

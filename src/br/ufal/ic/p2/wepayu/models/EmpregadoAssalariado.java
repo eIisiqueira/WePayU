@@ -1,6 +1,7 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class EmpregadoAssalariado extends Empregado {
 
@@ -16,5 +17,49 @@ public class EmpregadoAssalariado extends Empregado {
     @Override
     public String getTipo() {
         return "assalariado";
+    }
+
+    @Override
+    public boolean deveReceberEm(LocalDate dataPagamento) {
+        return dataPagamento.getDayOfMonth() == dataPagamento.lengthOfMonth();
+    }
+
+    @Override
+    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
+        return dataPagamento.withDayOfMonth(1);
+    }
+
+    @Override
+    protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
+        BigDecimal salarioBruto = getSalario();
+
+        return new Contracheque(
+                this,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                salarioBruto,
+                BigDecimal.ZERO,
+                salarioBruto
+        );
+    }
+
+    @Override
+    public String getSecaoFolha() {
+        return "ASSALARIADOS";
+    }
+
+    @Override
+    public String formatarLinhaFolha(Contracheque contracheque) {
+        return String.format(
+                "%-48s %13s %9s %15s %s",
+                getNome(),
+                formatarValor(contracheque.getSalarioBruto()),
+                formatarValor(contracheque.getDescontos()),
+                formatarValor(contracheque.getSalarioLiquido()),
+                descricaoPagamento()
+        );
     }
 }

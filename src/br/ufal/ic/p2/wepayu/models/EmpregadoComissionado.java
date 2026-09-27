@@ -1,6 +1,8 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,9 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
  */
 
 public class EmpregadoComissionado extends Empregado {
+
+    private static final LocalDate PRIMEIRA_DATA_PAGAMENTO =
+            LocalDate.of(2005, 1, 14);
 
     private BigDecimal comissao;
     private final List<ResultadoVenda> vendas = new ArrayList<>();
@@ -45,6 +50,78 @@ public class EmpregadoComissionado extends Empregado {
     @Override
     public String getTipo() {
         return "comissionado";
+    }
+
+    @Override
+    public boolean deveReceberEm(LocalDate dataPagamento) {
+        if (dataPagamento.isBefore(PRIMEIRA_DATA_PAGAMENTO)) {
+            return false;
+        }
+
+        long diasDesdePrimeiroPagamento =
+                ChronoUnit.DAYS.between(
+                        PRIMEIRA_DATA_PAGAMENTO,
+                        dataPagamento
+                );
+
+        return diasDesdePrimeiroPagamento % 14 == 0;
+    }
+
+    @Override
+    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
+        return dataPagamento.minusDays(13);
+    }
+
+    @Override
+    protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
+        LocalDate inicio = inicioPeriodoPagamento(dataPagamento);
+        LocalDate fimExclusivo = dataPagamento.plusDays(1);
+
+        BigDecimal fixo = getSalario()
+                .multiply(new BigDecimal("12"))
+                .divide(new BigDecimal("26"), 2, RoundingMode.DOWN);
+
+        BigDecimal totalVendas =
+                getVendasRealizadas(inicio, fimExclusivo);
+
+        BigDecimal valorComissao = totalVendas
+                .multiply(comissao)
+                .setScale(2, RoundingMode.DOWN);
+
+        BigDecimal salarioBruto =
+                fixo.add(valorComissao);
+
+        return new Contracheque(
+                this,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                fixo,
+                totalVendas,
+                valorComissao,
+                salarioBruto,
+                BigDecimal.ZERO,
+                salarioBruto
+        );
+    }
+
+    @Override
+    public String getSecaoFolha() {
+        return "COMISSIONADOS";
+    }
+
+    @Override
+    public String formatarLinhaFolha(Contracheque contracheque) {
+        return String.format(
+                "%-21s %8s %8s %8s %13s %9s %15s %s",
+                getNome(),
+                formatarValor(contracheque.getFixo()),
+                formatarValor(contracheque.getVendas()),
+                formatarValor(contracheque.getComissao()),
+                formatarValor(contracheque.getSalarioBruto()),
+                formatarValor(contracheque.getDescontos()),
+                formatarValor(contracheque.getSalarioLiquido()),
+                descricaoPagamento()
+        );
     }
 
     @Override

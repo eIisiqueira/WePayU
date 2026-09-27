@@ -5,8 +5,11 @@ import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import java.math.RoundingMode;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+
+import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
@@ -21,6 +24,9 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
  */
 
 public abstract class Empregado implements Serializable {
+
+    private static final LocalDate INICIO_CONTRATO_PADRAO =
+            LocalDate.of(2005, 1, 1);
 
     private String id;
     private String nome;
@@ -174,6 +180,93 @@ public abstract class Empregado implements Serializable {
 
     public abstract String getTipo();
 
+    public abstract boolean deveReceberEm(LocalDate dataPagamento);
+
+    public abstract LocalDate inicioPeriodoPagamento(LocalDate dataPagamento);
+
+    protected abstract Contracheque calcularDadosFolha(LocalDate dataPagamento);
+
+    public abstract String getSecaoFolha();
+
+    public abstract String formatarLinhaFolha(Contracheque contracheque);
+
+    public Contracheque calcularContracheque(LocalDate dataPagamento) {
+        Contracheque dados = calcularDadosFolha(dataPagamento);
+
+        if (dados.getSalarioBruto().compareTo(BigDecimal.ZERO) == 0) {
+            return dados.comDeducoes(BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+
+        BigDecimal descontos = BigDecimal.ZERO;
+
+        if (sindicalizado) {
+            int diasTaxaSindical = calcularDiasTaxaSindical(dataPagamento);
+
+            descontos = descontos.add(
+                    taxaSindical.multiply(
+                            BigDecimal.valueOf(diasTaxaSindical)
+                    )
+            );
+
+            descontos = descontos.add(
+                    getTaxasServico(
+                            inicioPeriodoPagamento(dataPagamento),
+                            dataPagamento.plusDays(1)
+                    )
+            );
+        }
+
+        BigDecimal salarioLiquido =
+                dados.getSalarioBruto().subtract(descontos);
+
+        return dados.comDeducoes(
+                descontos,
+                salarioLiquido
+        );
+    }
+
+    private int calcularDiasTaxaSindical(LocalDate dataPagamento) {
+        LocalDate dataAnterior = dataPagamento.minusDays(1);
+
+        while (!dataAnterior.isBefore(INICIO_CONTRATO_PADRAO)) {
+            if (deveReceberEm(dataAnterior)) {
+                Contracheque dadosAnteriores =
+                        calcularDadosFolha(dataAnterior);
+
+                if (dadosAnteriores.getSalarioBruto()
+                        .compareTo(BigDecimal.ZERO) > 0) {
+
+                    return (int) ChronoUnit.DAYS.between(
+                            dataAnterior,
+                            dataPagamento
+                    );
+                }
+            }
+
+            dataAnterior = dataAnterior.minusDays(1);
+        }
+
+        return (int) ChronoUnit.DAYS.between(
+                INICIO_CONTRATO_PADRAO,
+                dataPagamento
+        ) + 1;
+    }
+
+    public String descricaoPagamento() {
+        switch (metodoPagamento) {
+            case "correios":
+                return "Correios, " + endereco;
+
+            case "banco":
+                return banco
+                        + ", Ag. " + agencia
+                        + " CC " + contaCorrente;
+
+            default:
+                return "Em maos";
+        }
+    }
+
     public String getAtributo(String atributo)
             throws AtributoNaoExisteException,
             EmpregadoNaoComissionadoException,
@@ -247,6 +340,13 @@ public abstract class Empregado implements Serializable {
     public static String formatarValor(BigDecimal valor) {
         return valor
                 .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString()
+                .replace(".", ",");
+    }
+
+    public static String formatarNumero(BigDecimal valor) {
+        return valor
+                .stripTrailingZeros()
                 .toPlainString()
                 .replace(".", ",");
     }

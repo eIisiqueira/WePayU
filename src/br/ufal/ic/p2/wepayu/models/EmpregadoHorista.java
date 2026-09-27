@@ -2,6 +2,7 @@ package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +25,70 @@ public class EmpregadoHorista extends Empregado {
     @Override
     public String getTipo() {
         return "horista";
+    }
+
+    @Override
+    public boolean deveReceberEm(LocalDate dataPagamento) {
+        return dataPagamento.getDayOfWeek() == DayOfWeek.FRIDAY;
+    }
+
+    @Override
+    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
+        return dataPagamento.minusDays(6);
+    }
+
+    @Override
+    protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
+        LocalDate inicio = inicioPeriodoPagamento(dataPagamento);
+        LocalDate fimExclusivo = dataPagamento.plusDays(1);
+
+        BigDecimal horasNormais =
+                getHorasNormaisTrabalhadas(inicio, fimExclusivo);
+
+        BigDecimal horasExtras =
+                getHorasExtrasTrabalhadas(inicio, fimExclusivo);
+
+        BigDecimal parteNormal =
+                horasNormais.multiply(getSalario());
+
+        BigDecimal parteExtra =
+                horasExtras
+                        .multiply(getSalario())
+                        .multiply(new BigDecimal("1.5"));
+
+        BigDecimal salarioBruto =
+                parteNormal.add(parteExtra);
+
+        return new Contracheque(
+                this,
+                horasNormais,
+                horasExtras,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                salarioBruto,
+                BigDecimal.ZERO,
+                salarioBruto
+        );
+    }
+
+    @Override
+    public String getSecaoFolha() {
+        return "HORISTAS";
+    }
+
+    @Override
+    public String formatarLinhaFolha(Contracheque contracheque) {
+        return String.format(
+                "%-36s %5s %5s %13s %9s %15s %s",
+                getNome(),
+                formatarNumero(contracheque.getHorasNormais()),
+                formatarNumero(contracheque.getHorasExtras()),
+                formatarValor(contracheque.getSalarioBruto()),
+                formatarValor(contracheque.getDescontos()),
+                formatarValor(contracheque.getSalarioLiquido()),
+                descricaoPagamento()
+        );
     }
 
     /**
