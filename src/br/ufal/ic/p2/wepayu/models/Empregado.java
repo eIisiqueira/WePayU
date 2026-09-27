@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import java.math.RoundingMode;
 import java.io.Serializable;
+import java.time.LocalDate;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 
 public abstract class Empregado implements Serializable {
 
@@ -89,6 +91,28 @@ public abstract class Empregado implements Serializable {
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString()
                 .replace(".", ",");
+    }
+
+    public void lancaCartao(LocalDate data, BigDecimal horas)
+            throws EmpregadoNaoHoristaException {
+
+        throw new EmpregadoNaoHoristaException();
+    }
+
+    public BigDecimal getHorasNormaisTrabalhadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoHoristaException {
+
+        throw new EmpregadoNaoHoristaException();
+    }
+
+    public BigDecimal getHorasExtrasTrabalhadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoHoristaException {
+
+        throw new EmpregadoNaoHoristaException();
     }
 
 }
