@@ -29,6 +29,13 @@ public class EmpregadoAssalariado extends Empregado {
         return dataPagamento.withDayOfMonth(1);
     }
 
+    /**
+     * Calcula os dados brutos da folha do empregado assalariado
+     * com base em seu salário mensal.
+     *
+     * @param dataPagamento data do pagamento
+     * @return contracheque com os dados brutos do pagamento
+     */
     @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         BigDecimal salarioBruto = getSalario();

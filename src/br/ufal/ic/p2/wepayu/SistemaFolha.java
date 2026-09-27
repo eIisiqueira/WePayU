@@ -456,6 +456,14 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Calcula o total bruto da folha na data informada,
+     * somando os contracheques dos empregados que devem receber.
+     *
+     * @param data data da folha
+     * @return total bruto da folha
+     * @throws DataInvalidaException se a data informada for inválida
+     */
     public BigDecimal totalFolha(String data)
             throws DataInvalidaException {
 
@@ -477,6 +485,14 @@ public class SistemaFolha {
         return total;
     }
 
+    /**
+     * Calcula os contracheques da data informada, monta o relatório
+     * da folha e grava o resultado no arquivo indicado.
+     *
+     * @param data data da folha
+     * @param saida caminho do arquivo de saída
+     * @throws DataInvalidaException se a data informada for inválida
+     */
     public void rodaFolha(String data, String saida)
             throws DataInvalidaException {
 

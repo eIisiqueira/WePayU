@@ -14,6 +14,11 @@ public final class Contracheque {
     private final BigDecimal descontos;
     private final BigDecimal salarioLiquido;
 
+    /**
+     * Representa os valores calculados para o pagamento de um empregado,
+     * incluindo salário bruto, descontos, salário líquido e dados
+     * específicos exibidos na folha.
+     */
     public Contracheque(
             Empregado empregado,
             BigDecimal horasNormais,

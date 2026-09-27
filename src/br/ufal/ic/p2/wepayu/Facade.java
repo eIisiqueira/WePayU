@@ -57,6 +57,14 @@ public class Facade {
         sistema.salvar();
     }
 
+    /**
+     * Calcula o total bruto da folha para a data informada,
+     * considerando apenas os empregados que devem receber nessa data.
+     *
+     * @param data data da folha
+     * @return total bruto no formato monetário esperado pela interface
+     * @throws DataInvalidaException se a data informada for inválida
+     */
     public String totalFolha(String data)
             throws DataInvalidaException {
 
@@ -65,6 +73,14 @@ public class Facade {
         );
     }
 
+    /**
+     * Processa a folha da data informada e gera o relatório
+     * no arquivo de saída indicado.
+     *
+     * @param data data da folha
+     * @param saida caminho do arquivo de saída
+     * @throws DataInvalidaException se a data informada for inválida
+     */
     public void rodaFolha(String data, String saida)
             throws DataInvalidaException {
 

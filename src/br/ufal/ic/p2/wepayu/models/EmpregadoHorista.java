@@ -37,6 +37,13 @@ public class EmpregadoHorista extends Empregado {
         return dataPagamento.minusDays(6);
     }
 
+    /**
+     * Calcula os dados brutos da folha do empregado horista,
+     * considerando horas normais e horas extras do período.
+     *
+     * @param dataPagamento data do pagamento
+     * @return contracheque com os dados brutos do período
+     */
     @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         LocalDate inicio = inicioPeriodoPagamento(dataPagamento);

@@ -190,6 +190,13 @@ public abstract class Empregado implements Serializable {
 
     public abstract String formatarLinhaFolha(Contracheque contracheque);
 
+    /**
+     * Calcula o contracheque do empregado para a data informada,
+     * combinando o cálculo específico do tipo com os descontos comuns.
+     *
+     * @param dataPagamento data do pagamento
+     * @return contracheque calculado
+     */
     public Contracheque calcularContracheque(LocalDate dataPagamento) {
         Contracheque dados = calcularDadosFolha(dataPagamento);
 
@@ -228,6 +235,8 @@ public abstract class Empregado implements Serializable {
     private int calcularDiasTaxaSindical(LocalDate dataPagamento) {
         LocalDate dataAnterior = dataPagamento.minusDays(1);
 
+        // Retrocede até a última folha com salário bruto positivo para
+        // acumular os dias de taxa sindical desde esse pagamento.
         while (!dataAnterior.isBefore(INICIO_CONTRATO_PADRAO)) {
             if (deveReceberEm(dataAnterior)) {
                 Contracheque dadosAnteriores =
