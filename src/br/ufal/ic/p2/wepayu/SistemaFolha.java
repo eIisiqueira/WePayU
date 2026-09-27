@@ -1,12 +1,16 @@
 package br.ufal.ic.p2.wepayu;
 
 import br.ufal.ic.p2.wepayu.models.Empregado;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
+import br.ufal.ic.p2.wepayu.models.EmpregadoAssalariado;
+import br.ufal.ic.p2.wepayu.models.EmpregadoHorista;
+import br.ufal.ic.p2.wepayu.models.EmpregadoComissionado;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.io.*;
 
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.PersistenciaException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoEmpregadoInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
@@ -720,6 +724,65 @@ public class SistemaFolha {
                 agencia,
                 contaCorrente
         );
+    }
+
+    public void alterarTipoAssalariado(String emp)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado atual = buscarEmpregadoObrigatorio(emp);
+
+        Empregado novoEmpregado = new EmpregadoAssalariado(
+                atual.getId(),
+                atual.getNome(),
+                atual.getEndereco(),
+                atual.getSalario()
+        );
+
+        atual.copiarEstadoComumPara(novoEmpregado);
+
+        empregados.put(emp, novoEmpregado);
+    }
+
+    public void alterarTipoComissionado(
+            String emp,
+            BigDecimal comissao
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado atual = buscarEmpregadoObrigatorio(emp);
+
+        Empregado novoEmpregado = new EmpregadoComissionado(
+                atual.getId(),
+                atual.getNome(),
+                atual.getEndereco(),
+                atual.getSalario(),
+                comissao
+        );
+
+        atual.copiarEstadoComumPara(novoEmpregado);
+
+        empregados.put(emp, novoEmpregado);
+    }
+
+    public void alterarTipoHorista(
+            String emp,
+            BigDecimal salario
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado atual = buscarEmpregadoObrigatorio(emp);
+
+        Empregado novoEmpregado = new EmpregadoHorista(
+                atual.getId(),
+                atual.getNome(),
+                atual.getEndereco(),
+                salario
+        );
+
+        atual.copiarEstadoComumPara(novoEmpregado);
+
+        empregados.put(emp, novoEmpregado);
     }
 
 }

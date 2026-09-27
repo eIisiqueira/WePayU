@@ -255,7 +255,11 @@ public class Facade {
     }
 
     /**
-     * Altera somente o vínculo sindical necessário à US5.
+     * Altera um atributo de um empregado utilizando a forma simples
+     * do comando de alteração.
+     *
+     * Esta sobrecarga atende alterações que utilizam apenas o identificador
+     * do empregado, o atributo e um novo valor.
      *
      * @param emp identificador do empregado na folha
      * @param atributo atributo a ser alterado
@@ -290,6 +294,18 @@ public class Facade {
                 sistema.alterarEndereco(emp, valor);
                 return;
 
+            case "tipo":
+                validarTipo(valor);
+
+                if (!"assalariado".equals(valor)) {
+                    throw new EmpregadoInvalidoException(
+                            "Tipo invalido."
+                    );
+                }
+
+                sistema.alterarTipoAssalariado(emp);
+                return;
+
             case "salario":
                 BigDecimal salario = validarSalario(valor);
                 sistema.alterarSalario(emp, salario);
@@ -319,6 +335,7 @@ public class Facade {
                 throw new AtributoNaoExisteException();
         }
     }
+
     public void alteraEmpregado(
             String emp,
             String atributo,
@@ -326,13 +343,42 @@ public class Facade {
             String valorExtra
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
-            AtributoNaoExisteException {
+            AtributoNaoExisteException,
+            EmpregadoInvalidoException,
+            SalarioInvalidoException,
+            ComissaoInvalidaException {
 
         if (!"tipo".equals(atributo)) {
             throw new AtributoNaoExisteException();
         }
 
-        throw new AtributoNaoExisteException();
+        validarTipo(valor);
+
+        switch (valor) {
+
+            case "comissionado":
+                BigDecimal comissao = validarComissao(valorExtra);
+
+                sistema.alterarTipoComissionado(
+                        emp,
+                        comissao
+                );
+                return;
+
+            case "horista":
+                BigDecimal salario = validarSalario(valorExtra);
+
+                sistema.alterarTipoHorista(
+                        emp,
+                        salario
+                );
+                return;
+
+            default:
+                throw new EmpregadoInvalidoException(
+                        "Tipo invalido."
+                );
+        }
     }
 
     /**
