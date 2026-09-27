@@ -261,18 +261,46 @@ public class Facade {
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
             AtributoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            EmpregadoInvalidoException,
+            SalarioInvalidoException,
+            ComissaoInvalidaException,
+            EmpregadoNaoComissionadoException {
 
-        if (!"sindicalizado".equals(atributo)) {
-            throw new AtributoNaoExisteException();
+        switch (atributo) {
+
+            case "nome":
+                validarNome(valor);
+                sistema.alterarNome(emp, valor);
+                return;
+
+            case "endereco":
+                validarEndereco(valor);
+                sistema.alterarEndereco(emp, valor);
+                return;
+
+            case "salario":
+                BigDecimal salario = validarSalario(valor);
+                sistema.alterarSalario(emp, salario);
+                return;
+
+            case "comissao":
+                BigDecimal comissao = validarComissao(valor);
+                sistema.alterarComissao(emp, comissao);
+                return;
+
+            case "sindicalizado":
+                sistema.alteraEmpregadoSindicalizado(
+                        emp,
+                        Boolean.parseBoolean(valor),
+                        null,
+                        null
+                );
+                return;
+
+            default:
+                throw new AtributoNaoExisteException();
         }
-
-        sistema.alteraEmpregadoSindicalizado(
-                emp,
-                Boolean.parseBoolean(valor),
-                null,
-                null
-        );
     }
 
     /**

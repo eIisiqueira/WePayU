@@ -594,7 +594,40 @@ public class SistemaFolha {
             }
         }
 
-
         throw new EmpregadoNomeNaoExisteException();
     }
+
+    public void alterarNome(String emp, String nome)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setNome(nome);
+    }
+
+    public void alterarEndereco(String emp, String endereco)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setEndereco(endereco);
+    }
+
+    public void alterarSalario(String emp, BigDecimal salario)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setSalario(salario);
+    }
+
+    public void alterarComissao(String emp, BigDecimal comissao)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.alterarComissao(comissao);
+    }
+
 }

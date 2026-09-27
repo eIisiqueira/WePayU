@@ -196,6 +196,12 @@ public abstract class Empregado implements Serializable {
                 .replace(".", ",");
     }
 
+    public void alterarComissao(BigDecimal comissao)
+            throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
     /**
      * Define a operação polimórfica de lançamento de venda.
      * A implementação padrão rejeita a operação para empregados
