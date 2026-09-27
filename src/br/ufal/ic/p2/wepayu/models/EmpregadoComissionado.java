@@ -1,10 +1,14 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
-import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
  * Representa um empregado comissionado, que possui salário base
@@ -41,7 +45,10 @@ public class EmpregadoComissionado extends Empregado {
 
     @Override
     public String getAtributo(String atributo)
-            throws AtributoNaoExisteException {
+            throws AtributoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            EmpregadoNaoSindicalizadoException,
+            EmpregadoNaoRecebeEmBancoException {
 
         if (atributo.equals("comissao")) {
             return formatarValor(comissao);
