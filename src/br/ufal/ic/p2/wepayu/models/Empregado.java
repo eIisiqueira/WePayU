@@ -6,6 +6,7 @@ import java.math.RoundingMode;
 import java.io.Serializable;
 import java.time.LocalDate;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
 
 /**
  * Classe base abstrata da hierarquia de empregados do sistema.
@@ -94,11 +95,25 @@ public abstract class Empregado implements Serializable {
         }
     }
 
-    protected String formatarValor(BigDecimal valor) {
+    public static String formatarValor(BigDecimal valor) {
         return valor
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString()
                 .replace(".", ",");
+    }
+
+    public void lancaVenda(LocalDate data, BigDecimal valor)
+            throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
+    public BigDecimal getVendasRealizadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
     }
 
     /**

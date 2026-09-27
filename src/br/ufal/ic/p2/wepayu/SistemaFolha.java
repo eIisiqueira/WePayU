@@ -6,11 +6,14 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.io.*;
+
 import br.ufal.ic.p2.wepayu.Exception.PersistenciaException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoEmpregadoInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -70,6 +73,62 @@ public class SistemaFolha {
 
         empregados.remove(id);
 
+    }
+
+    public void lancaVenda(
+            String emp,
+            String data,
+            String valor
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            DataInvalidaException,
+            ValorVendaInvalidoException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        LocalDate dataVenda =
+                converterData(data, "Data invalida.");
+
+        BigDecimal valorVenda =
+                converterValorVenda(valor);
+
+        empregado.lancaVenda(
+                dataVenda,
+                valorVenda
+        );
+    }
+
+    public BigDecimal getVendasRealizadas(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            DataInvalidaException {
+
+        Empregado empregado =
+                buscarEmpregadoObrigatorio(emp);
+
+        LocalDate inicio =
+                converterData(
+                        dataInicial,
+                        "Data inicial invalida."
+                );
+
+        LocalDate fim =
+                converterData(
+                        dataFinal,
+                        "Data final invalida."
+                );
+
+        validarIntervalo(inicio, fim);
+
+        return empregado.getVendasRealizadas(
+                inicio,
+                fim
+        );
     }
 
     /**
@@ -255,6 +314,26 @@ public class SistemaFolha {
         }
 
         return valor;
+    }
+
+    private BigDecimal converterValorVenda(String valor)
+            throws ValorVendaInvalidoException {
+
+        BigDecimal valorConvertido;
+
+        try {
+            valorConvertido = new BigDecimal(
+                    valor.replace(",", ".")
+            );
+        } catch (NumberFormatException | NullPointerException e) {
+            throw new ValorVendaInvalidoException();
+        }
+
+        if (valorConvertido.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValorVendaInvalidoException();
+        }
+
+        return valorConvertido;
     }
 
     private void validarIntervalo(
