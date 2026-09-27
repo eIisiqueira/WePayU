@@ -80,6 +80,31 @@ public abstract class Empregado implements Serializable {
         this.salario = salario;
     }
 
+    public void configurarPagamentoEmMaos() {
+        this.metodoPagamento = "emMaos";
+        this.banco = null;
+        this.agencia = null;
+        this.contaCorrente = null;
+    }
+
+    public void configurarPagamentoCorreios() {
+        this.metodoPagamento = "correios";
+        this.banco = null;
+        this.agencia = null;
+        this.contaCorrente = null;
+    }
+
+    public void configurarPagamentoBanco(
+            String banco,
+            String agencia,
+            String contaCorrente
+    ) {
+        this.metodoPagamento = "banco";
+        this.banco = banco;
+        this.agencia = agencia;
+        this.contaCorrente = contaCorrente;
+    }
+
     public void setSindicalizado(boolean sindicalizado) {
         this.sindicalizado = sindicalizado;
     }
@@ -194,6 +219,12 @@ public abstract class Empregado implements Serializable {
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString()
                 .replace(".", ",");
+    }
+
+    public void alterarComissao(BigDecimal comissao)
+            throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
     }
 
     /**

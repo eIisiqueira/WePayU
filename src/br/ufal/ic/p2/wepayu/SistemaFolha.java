@@ -19,6 +19,13 @@ import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -87,7 +94,9 @@ public class SistemaFolha {
             String taxaSindical
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException {
 
         Empregado empregado = buscarEmpregadoObrigatorio(emp);
 
@@ -96,14 +105,39 @@ public class SistemaFolha {
             return;
         }
 
-        BigDecimal valorTaxaSindical = new BigDecimal(
-                taxaSindical.replace(",", ".")
-        );
+        if (idSindicato == null || idSindicato.isEmpty()) {
+            throw new IdentificacaoSindicatoInvalidaException();
+        }
+
+        if (taxaSindical == null || taxaSindical.isEmpty()) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical nao pode ser nula."
+            );
+        }
+
+        BigDecimal valorTaxaSindical;
+
+        try {
+            valorTaxaSindical = new BigDecimal(
+                    taxaSindical.replace(",", ".")
+            );
+        } catch (NumberFormatException e) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical deve ser numerica."
+            );
+        }
+
+        if (valorTaxaSindical.compareTo(BigDecimal.ZERO) < 0) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical deve ser nao-negativa."
+            );
+        }
 
         for (Empregado outro : empregados.values()) {
             if (outro != empregado
                     && outro.isSindicalizado()
                     && idSindicato.equals(outro.getIdSindicato())) {
+
                 throw new IdentificacaoSindicatoDuplicadaException();
             }
         }
@@ -113,7 +147,6 @@ public class SistemaFolha {
                 valorTaxaSindical
         );
     }
-
     public void lancaTaxaServico(
             String membro,
             String data,
@@ -594,7 +627,99 @@ public class SistemaFolha {
             }
         }
 
-
         throw new EmpregadoNomeNaoExisteException();
     }
+
+    public void alterarNome(String emp, String nome)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setNome(nome);
+    }
+
+    public void alterarEndereco(String emp, String endereco)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setEndereco(endereco);
+    }
+
+    public void alterarSalario(String emp, BigDecimal salario)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.setSalario(salario);
+    }
+
+    public void alterarComissao(String emp, BigDecimal comissao)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+        empregado.alterarComissao(comissao);
+    }
+
+    public void alterarMetodoPagamento(
+            String emp,
+            String metodoPagamento
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            MetodoPagamentoInvalidoException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        switch (metodoPagamento) {
+
+            case "emMaos":
+                empregado.configurarPagamentoEmMaos();
+                return;
+
+            case "correios":
+                empregado.configurarPagamentoCorreios();
+                return;
+
+            case "banco":
+                throw new MetodoPagamentoInvalidoException();
+
+            default:
+                throw new MetodoPagamentoInvalidoException();
+        }
+    }
+
+    public void alterarMetodoPagamentoBanco(
+            String emp,
+            String banco,
+            String agencia,
+            String contaCorrente
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            BancoInvalidoException,
+            AgenciaInvalidaException,
+            ContaCorrenteInvalidaException {
+
+        Empregado empregado = buscarEmpregadoObrigatorio(emp);
+
+        if (banco == null || banco.isEmpty()) {
+            throw new BancoInvalidoException();
+        }
+
+        if (agencia == null || agencia.isEmpty()) {
+            throw new AgenciaInvalidaException();
+        }
+
+        if (contaCorrente == null || contaCorrente.isEmpty()) {
+            throw new ContaCorrenteInvalidaException();
+        }
+
+        empregado.configurarPagamentoBanco(
+                banco,
+                agencia,
+                contaCorrente
+        );
+    }
+
 }

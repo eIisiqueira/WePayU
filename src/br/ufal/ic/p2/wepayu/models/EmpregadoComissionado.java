@@ -39,6 +39,11 @@ public class EmpregadoComissionado extends Empregado {
     }
 
     @Override
+    public void alterarComissao(BigDecimal comissao) {
+        this.comissao = comissao;
+    }
+
+    @Override
     public String getTipo() {
         return "comissionado";
     }

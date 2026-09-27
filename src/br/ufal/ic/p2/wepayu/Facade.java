@@ -25,6 +25,13 @@ import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.Exception.ValorSindicalizadoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -261,18 +268,71 @@ public class Facade {
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
             AtributoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            EmpregadoInvalidoException,
+            SalarioInvalidoException,
+            ComissaoInvalidaException,
+            EmpregadoNaoComissionadoException,
+            ValorSindicalizadoInvalidoException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException,
+            MetodoPagamentoInvalidoException {
 
-        if (!"sindicalizado".equals(atributo)) {
+        switch (atributo) {
+
+            case "nome":
+                validarNome(valor);
+                sistema.alterarNome(emp, valor);
+                return;
+
+            case "endereco":
+                validarEndereco(valor);
+                sistema.alterarEndereco(emp, valor);
+                return;
+
+            case "salario":
+                BigDecimal salario = validarSalario(valor);
+                sistema.alterarSalario(emp, salario);
+                return;
+
+            case "comissao":
+                BigDecimal comissao = validarComissao(valor);
+                sistema.alterarComissao(emp, comissao);
+                return;
+
+            case "metodoPagamento":
+                sistema.alterarMetodoPagamento(emp, valor);
+                return;
+
+            case "sindicalizado":
+                boolean sindicalizado = validarSindicalizado(valor);
+
+                sistema.alteraEmpregadoSindicalizado(
+                        emp,
+                        sindicalizado,
+                        null,
+                        null
+                );
+                return;
+
+            default:
+                throw new AtributoNaoExisteException();
+        }
+    }
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor,
+            String valorExtra
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException {
+
+        if (!"tipo".equals(atributo)) {
             throw new AtributoNaoExisteException();
         }
 
-        sistema.alteraEmpregadoSindicalizado(
-                emp,
-                Boolean.parseBoolean(valor),
-                null,
-                null
-        );
+        throw new AtributoNaoExisteException();
     }
 
     /**
@@ -293,17 +353,53 @@ public class Facade {
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
             AtributoNaoExisteException,
-            IdentificacaoSindicatoDuplicadaException {
+            IdentificacaoSindicatoDuplicadaException,
+            ValorSindicalizadoInvalidoException,
+            IdentificacaoSindicatoInvalidaException,
+            TaxaSindicalInvalidaException {
 
         if (!"sindicalizado".equals(atributo)) {
             throw new AtributoNaoExisteException();
         }
 
+        boolean sindicalizado = validarSindicalizado(valor);
+
         sistema.alteraEmpregadoSindicalizado(
                 emp,
-                Boolean.parseBoolean(valor),
+                sindicalizado,
                 idSindicato,
                 taxaSindical
+        );
+    }
+
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor1,
+            String banco,
+            String agencia,
+            String contaCorrente
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException,
+            MetodoPagamentoInvalidoException,
+            BancoInvalidoException,
+            AgenciaInvalidaException,
+            ContaCorrenteInvalidaException {
+
+        if (!"metodoPagamento".equals(atributo)) {
+            throw new AtributoNaoExisteException();
+        }
+
+        if (!"banco".equals(valor1)) {
+            throw new MetodoPagamentoInvalidoException();
+        }
+
+        sistema.alterarMetodoPagamentoBanco(
+                emp,
+                banco,
+                agencia,
+                contaCorrente
         );
     }
 
@@ -522,6 +618,16 @@ public class Facade {
                 .stripTrailingZeros()
                 .toPlainString()
                 .replace(".", ",");
+    }
+
+    private boolean validarSindicalizado(String valor)
+            throws ValorSindicalizadoInvalidoException {
+
+        if (!"true".equals(valor) && !"false".equals(valor)) {
+            throw new ValorSindicalizadoInvalidoException();
+        }
+
+        return Boolean.parseBoolean(valor);
     }
 
     private void validarNome(String nome)
