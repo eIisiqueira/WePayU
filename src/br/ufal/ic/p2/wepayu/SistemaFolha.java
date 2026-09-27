@@ -91,6 +91,18 @@ public class SistemaFolha {
 
     }
 
+    /**
+     * Altera a situação sindical do empregado.
+     *
+     * Ao sindicalizar, valida a identificação sindical e a taxa informada,
+     * impedindo também o uso de uma identificação já associada a outro
+     * empregado. Ao dessindicalizar, remove os dados sindicais atuais.
+     *
+     * @param emp identificador do empregado
+     * @param sindicalizado nova situação sindical
+     * @param idSindicato identificação do empregado no sindicato
+     * @param taxaSindical taxa sindical
+     */
     public void alteraEmpregadoSindicalizado(
             String emp,
             boolean sindicalizado,
@@ -151,6 +163,15 @@ public class SistemaFolha {
                 valorTaxaSindical
         );
     }
+
+    /**
+     * Localiza o empregado pela identificação sindical, converte os dados
+     * recebidos e delega o registro da taxa de serviço ao empregado.
+     *
+     * @param membro identificação do empregado no sindicato
+     * @param data data da taxa de serviço
+     * @param valor valor da taxa de serviço
+     */
     public void lancaTaxaServico(
             String membro,
             String data,
@@ -174,6 +195,15 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Consulta o total das taxas de serviço do empregado sindicalizado
+     * no período informado.
+     *
+     * @param emp identificador do empregado
+     * @param dataInicial início do período
+     * @param dataFinal fim do período
+     * @return soma das taxas de serviço no período
+     */
     public BigDecimal getTaxasServico(
             String emp,
             String dataInicial,
@@ -726,6 +756,12 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Altera o empregado para o tipo assalariado, preservando os
+     * dados comuns da representação anterior.
+     *
+     * @param emp identificador do empregado
+     */
     public void alterarTipoAssalariado(String emp)
             throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException {
@@ -744,6 +780,13 @@ public class SistemaFolha {
         empregados.put(emp, novoEmpregado);
     }
 
+    /**
+     * Altera o empregado para o tipo comissionado, preservando os
+     * dados comuns e associando a comissão informada.
+     *
+     * @param emp identificador do empregado
+     * @param comissao taxa de comissão do novo empregado comissionado
+     */
     public void alterarTipoComissionado(
             String emp,
             BigDecimal comissao
@@ -765,6 +808,13 @@ public class SistemaFolha {
         empregados.put(emp, novoEmpregado);
     }
 
+    /**
+     * Altera o empregado para o tipo horista, preservando os dados
+     * comuns e utilizando o novo salário informado.
+     *
+     * @param emp identificador do empregado
+     * @param salario salário do novo empregado horista
+     */
     public void alterarTipoHorista(
             String emp,
             BigDecimal salario
