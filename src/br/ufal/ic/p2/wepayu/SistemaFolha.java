@@ -2,6 +2,7 @@ package br.ufal.ic.p2.wepayu;
 
 import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.io.*;
@@ -31,6 +32,16 @@ public class SistemaFolha {
 
     public Empregado buscarEmpregado(String id) {
         return empregados.get(id);
+    }
+
+    public void removerEmpregado(String id)
+            throws EmpregadoNaoExisteException {
+
+        if (!empregados.containsKey(id)) {
+            throw new EmpregadoNaoExisteException();
+        }
+
+        empregados.remove(id);
     }
 
     public void salvar() {
@@ -100,6 +111,7 @@ public class SistemaFolha {
                 }
             }
         }
+
 
         throw new EmpregadoNomeNaoExisteException();
     }
