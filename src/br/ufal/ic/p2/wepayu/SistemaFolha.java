@@ -18,6 +18,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 
+/**
+ * Coordena as operações centrais do sistema de folha de pagamento.
+ *
+ * Mantém e localiza os empregados, controla a geração de identificadores
+ * e a persistência dos dados, além de delegar comportamentos específicos
+ * aos objetos de domínio correspondentes.
+ */
 public class SistemaFolha {
 
     private static final String ARQUIVO_DADOS = "wepayu.dat";
@@ -48,7 +55,12 @@ public class SistemaFolha {
         return empregados.get(id);
     }
 
-
+    /**
+     * Remove do conjunto de empregados o empregado correspondente ao ID informado.
+     *
+     * @param id identificador do empregado
+     * @throws EmpregadoNaoExisteException se nenhum empregado possuir o ID informado
+     */
     public void removerEmpregado(String id)
             throws EmpregadoNaoExisteException {
 
@@ -60,6 +72,19 @@ public class SistemaFolha {
 
     }
 
+    /**
+     * Valida e converte os dados externos de um cartão de ponto e delega
+     * seu lançamento ao empregado correspondente.
+     *
+     * @param emp identificador do empregado
+     * @param data data do cartão no formato aceito pelo sistema
+     * @param horas quantidade de horas trabalhadas
+     * @throws IdentificacaoEmpregadoInvalidaException se o identificador for nulo ou vazio
+     * @throws EmpregadoNaoExisteException se o empregado não existir
+     * @throws EmpregadoNaoHoristaException se o empregado não aceitar cartões de ponto
+     * @throws DataInvalidaException se a data não puder ser interpretada
+     * @throws HorasInvalidasException se a quantidade de horas não for válida ou positiva
+     */
     public void lancaCartao(
             String emp,
             String data,
@@ -84,6 +109,22 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Obtém o total de horas normais trabalhadas pelo empregado
+     * no intervalo informado.
+     *
+     * As datas recebidas são convertidas e o intervalo é validado antes
+     * de o cálculo ser delegado ao empregado.
+     *
+     * @param emp identificador do empregado
+     * @param dataInicial início do intervalo
+     * @param dataFinal fim do intervalo
+     * @return total de horas normais trabalhadas
+     * @throws IdentificacaoEmpregadoInvalidaException se o identificador for nulo ou vazio
+     * @throws EmpregadoNaoExisteException se o empregado não existir
+     * @throws EmpregadoNaoHoristaException se o empregado não for horista
+     * @throws DataInvalidaException se alguma data ou o intervalo forem inválidos
+     */
     public BigDecimal getHorasNormaisTrabalhadas(
             String emp,
             String dataInicial,
@@ -116,6 +157,22 @@ public class SistemaFolha {
         );
     }
 
+    /**
+     * Obtém o total de horas extras trabalhadas pelo empregado
+     * no intervalo informado.
+     *
+     * As datas recebidas são convertidas e o intervalo é validado antes
+     * de o cálculo ser delegado ao empregado.
+     *
+     * @param emp identificador do empregado
+     * @param dataInicial início do intervalo
+     * @param dataFinal fim do intervalo
+     * @return total de horas extras trabalhadas
+     * @throws IdentificacaoEmpregadoInvalidaException se o identificador for nulo ou vazio
+     * @throws EmpregadoNaoExisteException se o empregado não existir
+     * @throws EmpregadoNaoHoristaException se o empregado não for horista
+     * @throws DataInvalidaException se alguma data ou o intervalo forem inválidos
+     */
     public BigDecimal getHorasExtrasTrabalhadas(
             String emp,
             String dataInicial,
@@ -213,6 +270,12 @@ public class SistemaFolha {
 
     }
 
+    /**
+     * Persiste em arquivo o estado atual dos empregados e o próximo
+     * identificador que deverá ser gerado.
+     *
+     * @throws PersistenciaException se ocorrer uma falha durante a gravação dos dados
+     */
     public void salvar() {
 
         try (ObjectOutputStream saida =
@@ -240,6 +303,7 @@ public class SistemaFolha {
                      new ObjectInputStream(
                              new FileInputStream(arquivo))) {
 
+            // A leitura deve seguir a mesma ordem usada em salvar(): empregados e depois próximo ID.
             Map<String, Empregado> dados =
                     (Map<String, Empregado>) entrada.readObject();
 
@@ -254,6 +318,12 @@ public class SistemaFolha {
         }
     }
 
+
+    /**
+     * Reinicia o estado do sistema, removendo os empregados em memória,
+     * restaurando a sequência de identificadores e excluindo o arquivo
+     * de persistência existente.
+     */
     public void zerar() {
         empregados.clear();
         proximoId = 1;
@@ -265,6 +335,19 @@ public class SistemaFolha {
         }
     }
 
+    /**
+     * Procura empregados cujo nome contenha o texto informado e retorna
+     * o ID da correspondência indicada.
+     *
+     * As correspondências seguem a ordem mantida pelo cadastro de empregados,
+     * e o índice é contado a partir de 1.
+     *
+     * @param nome trecho de nome utilizado na busca
+     * @param indice posição da correspondência desejada
+     * @return identificador do empregado encontrado
+     * @throws EmpregadoNomeNaoExisteException se não houver correspondência
+     *                                         na posição solicitada
+     */
     public String buscarEmpregadoPorNome(String nome, int indice)
             throws EmpregadoNomeNaoExisteException {
 

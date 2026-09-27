@@ -3,6 +3,13 @@ package br.ufal.ic.p2.wepayu.models;
 import java.math.BigDecimal;
 import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 
+/**
+ * Representa um empregado comissionado, que possui salário base
+ * e uma taxa de comissão associada.
+ *
+ * Especializa a consulta de atributos do empregado para disponibilizar
+ * também o valor da comissão.
+ */
 
 public class EmpregadoComissionado extends Empregado {
 

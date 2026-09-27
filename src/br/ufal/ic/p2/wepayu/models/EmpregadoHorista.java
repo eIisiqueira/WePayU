@@ -26,11 +26,30 @@ public class EmpregadoHorista extends Empregado {
         return "horista";
     }
 
+    /**
+     * Registra um cartão de ponto para este empregado horista.
+     *
+     * A data e a quantidade de horas já chegam validadas pela camada
+     * responsável por coordenar a operação.
+     *
+     * @param data data do cartão de ponto
+     * @param horas quantidade de horas trabalhadas
+     */
     @Override
     public void lancaCartao(LocalDate data, BigDecimal horas) {
         cartoes.add(new CartaoPonto(data, horas));
     }
 
+    /**
+     * Soma as horas normais registradas nos cartões de ponto pertencentes
+     * ao intervalo informado.
+     *
+     * Em cada dia são consideradas no máximo oito horas como normais.
+     *
+     * @param dataInicial início inclusivo do intervalo
+     * @param dataFinal fim exclusivo do intervalo
+     * @return total de horas normais trabalhadas
+     */
     @Override
     public BigDecimal getHorasNormaisTrabalhadas(
             LocalDate dataInicial,
@@ -44,6 +63,7 @@ public class EmpregadoHorista extends Empregado {
                     dataInicial,
                     dataFinal
             )) {
+                // Em cada cartão, apenas as primeiras 8 horas contam como horas normais.
                 total = total.add(
                         cartao.getHoras()
                                 .min(LIMITE_HORAS_NORMAIS)
@@ -54,6 +74,14 @@ public class EmpregadoHorista extends Empregado {
         return total;
     }
 
+    /**
+     * Soma, nos cartões de ponto pertencentes ao intervalo informado,
+     * somente as horas trabalhadas além das oito horas normais de cada dia.
+     *
+     * @param dataInicial início inclusivo do intervalo
+     * @param dataFinal fim exclusivo do intervalo
+     * @return total de horas extras trabalhadas
+     */
     @Override
     public BigDecimal getHorasExtrasTrabalhadas(
             LocalDate dataInicial,
@@ -85,6 +113,7 @@ public class EmpregadoHorista extends Empregado {
             LocalDate dataInicial,
             LocalDate dataFinal
     ) {
+        // Os testes consideram o início do intervalo inclusivo e o fim exclusivo.
         return !data.isBefore(dataInicial)
                 && data.isBefore(dataFinal);
     }
