@@ -24,6 +24,7 @@ import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
 import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -181,13 +182,19 @@ public class Facade {
      * @throws IdentificacaoEmpregadoInvalidaException se o identificador for nulo ou vazio
      * @throws EmpregadoNaoExisteException se não houver empregado com o identificador informado
      * @throws AtributoNaoExisteException se o atributo solicitado não for reconhecido
+     * @throws EmpregadoNaoComissionadoException se a comissão for consultada em empregado não comissionado
+     * @throws EmpregadoNaoSindicalizadoException se dados sindicais forem consultados em empregado não sindicalizado
+     * @throws EmpregadoNaoRecebeEmBancoException se dados bancários forem consultados em empregado que não recebe por banco
      */
     public String getAtributoEmpregado(
             String emp,
             String atributo
     ) throws IdentificacaoEmpregadoInvalidaException,
             EmpregadoNaoExisteException,
-            AtributoNaoExisteException {
+            AtributoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            EmpregadoNaoSindicalizadoException,
+            EmpregadoNaoRecebeEmBancoException {
 
         if (emp == null || emp.isEmpty()) {
             throw new IdentificacaoEmpregadoInvalidaException();

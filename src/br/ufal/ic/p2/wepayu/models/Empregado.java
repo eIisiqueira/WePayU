@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
  * Classe base abstrata da hierarquia de empregados do sistema.
@@ -28,6 +30,10 @@ public abstract class Empregado implements Serializable {
     private String idSindicato;
     private BigDecimal taxaSindical;
     private final List<TaxaServico> taxasServico = new ArrayList<>();
+    private String metodoPagamento;
+    private String banco;
+    private String agencia;
+    private String contaCorrente;
 
     public Empregado(String id, String nome, String endereco, BigDecimal salario) {
         this.id = id;
@@ -35,6 +41,7 @@ public abstract class Empregado implements Serializable {
         this.endereco = endereco;
         this.salario = salario;
         this.sindicalizado = false;
+        this.metodoPagamento = "emMaos";
     }
 
     public String getId() {
@@ -113,7 +120,10 @@ public abstract class Empregado implements Serializable {
     public abstract String getTipo();
 
     public String getAtributo(String atributo)
-            throws AtributoNaoExisteException {
+            throws AtributoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            EmpregadoNaoSindicalizadoException,
+            EmpregadoNaoRecebeEmBancoException {
 
         switch (atributo) {
 
@@ -129,11 +139,53 @@ public abstract class Empregado implements Serializable {
             case "salario":
                 return formatarValor(getSalario());
 
+            case "comissao":
+                throw new EmpregadoNaoComissionadoException();
+
+            case "metodoPagamento":
+                return metodoPagamento;
+
+            case "banco":
+                validarPagamentoBanco();
+                return banco;
+
+            case "agencia":
+                validarPagamentoBanco();
+                return agencia;
+
+            case "contaCorrente":
+                validarPagamentoBanco();
+                return contaCorrente;
+
             case "sindicalizado":
                 return String.valueOf(isSindicalizado());
 
+            case "idSindicato":
+                validarSindicalizado();
+                return idSindicato;
+
+            case "taxaSindical":
+                validarSindicalizado();
+                return formatarValor(taxaSindical);
+
             default:
                 throw new AtributoNaoExisteException();
+        }
+    }
+
+    private void validarPagamentoBanco()
+            throws EmpregadoNaoRecebeEmBancoException {
+
+        if (!"banco".equals(metodoPagamento)) {
+            throw new EmpregadoNaoRecebeEmBancoException();
+        }
+    }
+
+    private void validarSindicalizado()
+            throws EmpregadoNaoSindicalizadoException {
+
+        if (!sindicalizado) {
+            throw new EmpregadoNaoSindicalizadoException();
         }
     }
 
