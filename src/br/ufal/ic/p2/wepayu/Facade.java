@@ -29,6 +29,9 @@ import br.ufal.ic.p2.wepayu.Exception.ValorSindicalizadoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -316,6 +319,21 @@ public class Facade {
                 throw new AtributoNaoExisteException();
         }
     }
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor,
+            String valorExtra
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException {
+
+        if (!"tipo".equals(atributo)) {
+            throw new AtributoNaoExisteException();
+        }
+
+        throw new AtributoNaoExisteException();
+    }
 
     /**
      * Configura a sindicalização de um empregado com identificação e taxa sindical.
@@ -351,6 +369,37 @@ public class Facade {
                 sindicalizado,
                 idSindicato,
                 taxaSindical
+        );
+    }
+
+    public void alteraEmpregado(
+            String emp,
+            String atributo,
+            String valor1,
+            String banco,
+            String agencia,
+            String contaCorrente
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AtributoNaoExisteException,
+            MetodoPagamentoInvalidoException,
+            BancoInvalidoException,
+            AgenciaInvalidaException,
+            ContaCorrenteInvalidaException {
+
+        if (!"metodoPagamento".equals(atributo)) {
+            throw new AtributoNaoExisteException();
+        }
+
+        if (!"banco".equals(valor1)) {
+            throw new MetodoPagamentoInvalidoException();
+        }
+
+        sistema.alterarMetodoPagamentoBanco(
+                emp,
+                banco,
+                agencia,
+                contaCorrente
         );
     }
 
