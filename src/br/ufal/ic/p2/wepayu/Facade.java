@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -231,6 +233,41 @@ public class Facade {
     ) throws EmpregadoNomeNaoExisteException {
 
         return sistema.buscarEmpregadoPorNome(nome, indice);
+    }
+
+    public void lancaVenda(
+            String emp,
+            String data,
+            String valor
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            DataInvalidaException,
+            ValorVendaInvalidoException {
+
+        sistema.lancaVenda(
+                emp,
+                data,
+                valor
+        );
+    }
+
+    public String getVendasRealizadas(
+            String emp,
+            String dataInicial,
+            String dataFinal
+    ) throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            EmpregadoNaoComissionadoException,
+            DataInvalidaException {
+
+        return Empregado.formatarValor(
+                sistema.getVendasRealizadas(
+                        emp,
+                        dataInicial,
+                        dataFinal
+                )
+        );
     }
 
     /**
