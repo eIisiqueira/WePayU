@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +39,8 @@ import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoADesfazerException;
+import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoARefazerException;
 
 
 import java.math.BigDecimal;
@@ -67,9 +71,15 @@ public class SistemaFolha {
     private final Map<String, Empregado> empregados;
     private int proximoId;
 
+    private final Deque<byte[]> pilhaUndo;
+    private final Deque<byte[]> pilhaRedo;
+
     public SistemaFolha() {
         this.empregados = new LinkedHashMap<>();
         this.proximoId = 1;
+
+        this.pilhaUndo = new ArrayDeque<>();
+        this.pilhaRedo = new ArrayDeque<>();
 
         carregar();
     }
@@ -84,6 +94,141 @@ public class SistemaFolha {
 
     public Empregado buscarEmpregado(String id) {
         return empregados.get(id);
+    }
+
+    public int getNumeroDeEmpregados() {
+        return empregados.size();
+    }
+
+    /**
+     * Cria uma cópia profunda do estado de negócio atual do sistema.
+     *
+     * O snapshot contém os empregados cadastrados e o próximo identificador
+     * disponível, sem utilizar o arquivo de persistência do sistema.
+     *
+     * @return representação serializada do estado atual
+     * @throws PersistenciaException se não for possível criar o snapshot
+     */
+    private byte[] criarSnapshot() {
+
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             ObjectOutputStream saida = new ObjectOutputStream(bytes)) {
+
+            saida.writeObject(empregados);
+            saida.writeInt(proximoId);
+            saida.flush();
+
+            return bytes.toByteArray();
+
+        } catch (IOException e) {
+            throw new PersistenciaException(
+                    "Erro ao criar snapshot."
+            );
+        }
+    }
+
+    /**
+     * Restaura o estado de negócio armazenado em um snapshot.
+     *
+     * Os empregados atuais são substituídos pelos empregados presentes
+     * no snapshot e o próximo identificador também é restaurado.
+     *
+     * @param snapshot estado anteriormente capturado
+     * @throws PersistenciaException se não for possível restaurar o snapshot
+     */
+    @SuppressWarnings("unchecked")
+    private void restaurarSnapshot(byte[] snapshot) {
+
+        try (ByteArrayInputStream bytes =
+                     new ByteArrayInputStream(snapshot);
+             ObjectInputStream entrada =
+                     new ObjectInputStream(bytes)) {
+
+            Map<String, Empregado> empregadosRestaurados =
+                    (Map<String, Empregado>) entrada.readObject();
+
+            int proximoIdRestaurado = entrada.readInt();
+
+            empregados.clear();
+            empregados.putAll(empregadosRestaurados);
+
+            proximoId = proximoIdRestaurado;
+
+        } catch (IOException | ClassNotFoundException e) {
+            throw new PersistenciaException(
+                    "Erro ao restaurar snapshot."
+            );
+        }
+    }
+
+    /**
+     * Captura o estado atual para uma possível transação.
+     *
+     * @return snapshot profundo do estado de negócio atual
+     */
+    byte[] capturarEstadoParaTransacao() {
+        return criarSnapshot();
+    }
+
+    /**
+     * Registra uma transação concluída com sucesso.
+     *
+     * O estado anterior é armazenado na pilha de undo e qualquer
+     * histórico de redo é descartado.
+     *
+     * @param estadoAnterior estado existente antes da transação
+     */
+    void confirmarTransacao(byte[] estadoAnterior) {
+        pilhaUndo.push(estadoAnterior);
+        pilhaRedo.clear();
+    }
+
+    /**
+     * Desfaz a última transação registrada no sistema.
+     *
+     * O estado atual é armazenado para permitir um possível redo e,
+     * em seguida, o estado anterior é restaurado.
+     *
+     * @throws NaoHaComandoADesfazerException se não existir transação
+     *                                        disponível para desfazer
+     */
+    public void undo() throws NaoHaComandoADesfazerException {
+
+        if (pilhaUndo.isEmpty()) {
+            throw new NaoHaComandoADesfazerException();
+        }
+
+        byte[] estadoAtual = criarSnapshot();
+        byte[] estadoAnterior = pilhaUndo.peek();
+
+        restaurarSnapshot(estadoAnterior);
+
+        pilhaUndo.pop();
+        pilhaRedo.push(estadoAtual);
+    }
+
+    /**
+     * Refaz a última transação anteriormente desfeita.
+     *
+     * O estado atual é armazenado na pilha de undo e o estado
+     * futuro correspondente é restaurado.
+     *
+     * @throws NaoHaComandoARefazerException se não existir transação
+     *                                       disponível para refazer
+     */
+    public void redo() throws NaoHaComandoARefazerException {
+
+        if (pilhaRedo.isEmpty()) {
+            throw new NaoHaComandoARefazerException();
+        }
+
+        byte[] estadoAtual = criarSnapshot();
+        byte[] estadoFuturo = pilhaRedo.peek();
+
+        restaurarSnapshot(estadoFuturo);
+
+        pilhaRedo.pop();
+        pilhaUndo.push(estadoAtual);
     }
 
     /**

@@ -32,6 +32,9 @@ import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
 import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
 import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
+import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoADesfazerException;
+import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoARefazerException;
+import br.ufal.ic.p2.wepayu.Exception.ComandoAposEncerrarSistemaException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
@@ -44,17 +47,69 @@ import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
 public class Facade {
 
     private final SistemaFolha sistema;
+    private boolean encerrado;
 
     public Facade() {
         this.sistema = new SistemaFolha();
+        this.encerrado = false;
     }
 
+    public int getNumeroDeEmpregados() {
+        return sistema.getNumeroDeEmpregados();
+    }
+
+    /**
+     * Desfaz a última transação realizada no sistema.
+     *
+     * @throws ComandoAposEncerrarSistemaException se a sessão já tiver sido encerrada
+     * @throws NaoHaComandoADesfazerException se não houver transação disponível
+     *                                        para desfazer
+     */
+    public void undo()
+            throws ComandoAposEncerrarSistemaException,
+            NaoHaComandoADesfazerException {
+
+        if (encerrado) {
+            throw new ComandoAposEncerrarSistemaException();
+        }
+
+        sistema.undo();
+    }
+
+    /**
+     * Refaz a última transação anteriormente desfeita.
+     *
+     * @throws NaoHaComandoARefazerException se não houver transação
+     *                                       disponível para refazer
+     */
+    public void redo() throws NaoHaComandoARefazerException {
+        sistema.redo();
+    }
+
+    /**
+     * Reinicia o estado de negócio do sistema.
+     *
+     * O estado existente antes da limpeza é registrado no histórico,
+     * permitindo que a operação seja desfeita posteriormente.
+     */
     public void zerarSistema() {
+
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.zerar();
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
+    /**
+     * Persiste o estado atual e encerra a sessão do sistema.
+     *
+     * Após o encerramento, operações de undo não são permitidas.
+     */
     public void encerrarSistema() {
         sistema.salvar();
+        encerrado = true;
     }
 
     /**
@@ -74,17 +129,25 @@ public class Facade {
     }
 
     /**
-     * Processa a folha da data informada e gera o relatório
-     * no arquivo de saída indicado.
+     * Executa a folha de pagamento para a data informada e registra
+     * a operação no histórico.
      *
-     * @param data data da folha
+     * O snapshot considera apenas o estado interno do sistema. O arquivo
+     * de saída produzido pela folha não faz parte do undo.
+     *
+     * @param data data da execução da folha
      * @param saida caminho do arquivo de saída
      * @throws DataInvalidaException se a data informada for inválida
      */
     public void rodaFolha(String data, String saida)
             throws DataInvalidaException {
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.rodaFolha(data, saida);
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
@@ -123,6 +186,9 @@ public class Facade {
 
         BigDecimal valorSalario = validarSalario(salario);
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         String id = sistema.gerarId();
 
         Empregado empregado;
@@ -147,6 +213,8 @@ public class Facade {
         }
 
         sistema.adicionarEmpregado(empregado);
+
+        sistema.confirmarTransacao(estadoAnterior);
 
         return id;
     }
@@ -192,6 +260,9 @@ public class Facade {
         BigDecimal valorSalario = validarSalario(salario);
         BigDecimal valorComissao = validarComissao(comissao);
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         String id = sistema.gerarId();
 
         Empregado empregado = new EmpregadoComissionado(
@@ -203,6 +274,8 @@ public class Facade {
         );
 
         sistema.adicionarEmpregado(empregado);
+
+        sistema.confirmarTransacao(estadoAnterior);
 
         return id;
     }
@@ -249,6 +322,9 @@ public class Facade {
     /**
      * Remove do sistema o empregado correspondente ao identificador informado.
      *
+     * A remoção concluída com sucesso é registrada no histórico para
+     * permitir sua posterior reversão.
+     *
      * @param emp identificador do empregado a ser removido
      * @throws IdentificacaoEmpregadoInvalidaException se o identificador for nulo ou vazio
      * @throws EmpregadoNaoExisteException se não houver empregado com o identificador informado
@@ -261,7 +337,12 @@ public class Facade {
             throw new IdentificacaoEmpregadoInvalidaException();
         }
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.removerEmpregado(emp);
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
@@ -288,8 +369,8 @@ public class Facade {
      * Altera um atributo de um empregado utilizando a forma simples
      * do comando de alteração.
      *
-     * Esta sobrecarga atende alterações que utilizam apenas o identificador
-     * do empregado, o atributo e um novo valor.
+     * A alteração concluída com sucesso é registrada no histórico
+     * para permitir undo e redo.
      *
      * @param emp identificador do empregado na folha
      * @param atributo atributo a ser alterado
@@ -312,17 +393,20 @@ public class Facade {
             TaxaSindicalInvalidaException,
             MetodoPagamentoInvalidoException {
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         switch (atributo) {
 
             case "nome":
                 validarNome(valor);
                 sistema.alterarNome(emp, valor);
-                return;
+                break;
 
             case "endereco":
                 validarEndereco(valor);
                 sistema.alterarEndereco(emp, valor);
-                return;
+                break;
 
             case "tipo":
                 validarTipo(valor);
@@ -334,21 +418,21 @@ public class Facade {
                 }
 
                 sistema.alterarTipoAssalariado(emp);
-                return;
+                break;
 
             case "salario":
                 BigDecimal salario = validarSalario(valor);
                 sistema.alterarSalario(emp, salario);
-                return;
+                break;
 
             case "comissao":
                 BigDecimal comissao = validarComissao(valor);
                 sistema.alterarComissao(emp, comissao);
-                return;
+                break;
 
             case "metodoPagamento":
                 sistema.alterarMetodoPagamento(emp, valor);
-                return;
+                break;
 
             case "sindicalizado":
                 boolean sindicalizado = validarSindicalizado(valor);
@@ -359,19 +443,21 @@ public class Facade {
                         null,
                         null
                 );
-                return;
+                break;
 
             default:
                 throw new AtributoNaoExisteException();
         }
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
      * Altera o tipo do empregado quando a nova categoria exige
      * um valor adicional.
      *
-     * Nesta sobrecarga, o valor adicional representa a comissão para
-     * empregados comissionados ou o salário para empregados horistas.
+     * A alteração concluída com sucesso é registrada no histórico,
+     * permitindo restaurar inclusive o subtipo anterior do empregado.
      *
      * @param emp identificador do empregado
      * @param atributo atributo a ser alterado
@@ -396,6 +482,9 @@ public class Facade {
 
         validarTipo(valor);
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         switch (valor) {
 
             case "comissionado":
@@ -405,7 +494,7 @@ public class Facade {
                         emp,
                         comissao
                 );
-                return;
+                break;
 
             case "horista":
                 BigDecimal salario = validarSalario(valorExtra);
@@ -414,17 +503,22 @@ public class Facade {
                         emp,
                         salario
                 );
-                return;
+                break;
 
             default:
                 throw new EmpregadoInvalidoException(
                         "Tipo invalido."
                 );
         }
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
-     * Configura a sindicalização de um empregado com identificação e taxa sindical.
+     * Configura a sindicalização de um empregado com identificação
+     * e taxa sindical.
+     *
+     * A alteração concluída com sucesso é registrada no histórico.
      *
      * @param emp identificador do empregado na folha
      * @param atributo atributo a ser alterado
@@ -452,17 +546,24 @@ public class Facade {
 
         boolean sindicalizado = validarSindicalizado(valor);
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.alteraEmpregadoSindicalizado(
                 emp,
                 sindicalizado,
                 idSindicato,
                 taxaSindical
         );
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
      * Configura o método de pagamento do empregado como depósito bancário,
      * utilizando os dados da conta informados.
+     *
+     * A alteração concluída com sucesso é registrada no histórico.
      *
      * @param emp identificador do empregado
      * @param atributo atributo a ser alterado
@@ -494,16 +595,23 @@ public class Facade {
             throw new MetodoPagamentoInvalidoException();
         }
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.alterarMetodoPagamentoBanco(
                 emp,
                 banco,
                 agencia,
                 contaCorrente
         );
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
      * Lança uma taxa de serviço para um membro identificado pelo ID sindical.
+     *
+     * O lançamento concluído com sucesso é registrado no histórico.
      *
      * @param membro identificação do empregado no sindicato
      * @param data data da taxa de serviço
@@ -518,11 +626,16 @@ public class Facade {
             DataInvalidaException,
             ValorTaxaServicoInvalidoException {
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.lancaTaxaServico(
                 membro,
                 data,
                 valor
         );
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
@@ -552,8 +665,10 @@ public class Facade {
     }
 
     /**
-     * Registra um resultado de venda para o empregado informado,
-     * delegando a operação ao sistema de folha.
+     * Registra um resultado de venda para o empregado informado.
+     *
+     * Somente lançamentos concluídos com sucesso são registrados
+     * no histórico de undo e redo.
      *
      * @param emp identificador do empregado
      * @param data data da venda
@@ -574,11 +689,16 @@ public class Facade {
             DataInvalidaException,
             ValorVendaInvalidoException {
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.lancaVenda(
                 emp,
                 data,
                 valor
         );
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
@@ -614,9 +734,8 @@ public class Facade {
     /**
      * Registra um cartão de ponto para o empregado informado.
      *
-     * A validação do identificador, da data e da quantidade de horas,
-     * bem como a aplicação da operação ao tipo correto de empregado,
-     * é delegada ao sistema.
+     * Somente cartões lançados com sucesso são registrados
+     * no histórico de undo e redo.
      *
      * @param emp identificador do empregado
      * @param data data do cartão de ponto
@@ -637,11 +756,16 @@ public class Facade {
             DataInvalidaException,
             HorasInvalidasException {
 
+        byte[] estadoAnterior =
+                sistema.capturarEstadoParaTransacao();
+
         sistema.lancaCartao(
                 emp,
                 data,
                 horas
         );
+
+        sistema.confirmarTransacao(estadoAnterior);
     }
 
     /**
