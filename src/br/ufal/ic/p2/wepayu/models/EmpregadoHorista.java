@@ -38,6 +38,27 @@ public class EmpregadoHorista extends Empregado {
     }
 
     /**
+     * Considera como início do contrato a data do primeiro cartão de ponto
+     * lançado para o empregado horista.
+     *
+     * @return data do primeiro cartão ou {@code null} se ainda não houver cartões
+     */
+    @Override
+    protected LocalDate dataInicioContrato() {
+        LocalDate primeiraData = null;
+
+        for (CartaoPonto cartao : cartoes) {
+            if (primeiraData == null
+                    || cartao.getData().isBefore(primeiraData)) {
+
+                primeiraData = cartao.getData();
+            }
+        }
+
+        return primeiraData;
+    }
+
+    /**
      * Calcula os dados brutos da folha do empregado horista,
      * considerando horas normais e horas extras do período.
      *

@@ -54,6 +54,11 @@ public class Facade {
         this.encerrado = false;
     }
 
+    /**
+     * Retorna a quantidade atual de empregados cadastrados no sistema.
+     *
+     * @return número de empregados cadastrados
+     */
     public int getNumeroDeEmpregados() {
         return sistema.getNumeroDeEmpregados();
     }
@@ -79,13 +84,20 @@ public class Facade {
     /**
      * Refaz a última transação anteriormente desfeita.
      *
+     * @throws ComandoAposEncerrarSistemaException se a sessão já tiver sido encerrada
      * @throws NaoHaComandoARefazerException se não houver transação
      *                                       disponível para refazer
      */
-    public void redo() throws NaoHaComandoARefazerException {
+    public void redo()
+            throws ComandoAposEncerrarSistemaException,
+            NaoHaComandoARefazerException {
+
+        if (encerrado) {
+            throw new ComandoAposEncerrarSistemaException();
+        }
+
         sistema.redo();
     }
-
     /**
      * Reinicia o estado de negócio do sistema.
      *

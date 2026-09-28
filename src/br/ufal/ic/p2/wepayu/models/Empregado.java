@@ -1,7 +1,6 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
-import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
 import java.math.RoundingMode;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -180,8 +179,21 @@ public abstract class Empregado implements Serializable {
 
     public abstract String getTipo();
 
+    /**
+     * Informa se o empregado deve receber pagamento na data informada,
+     * de acordo com a agenda definida por seu tipo.
+     *
+     * @param dataPagamento data a ser verificada
+     * @return {@code true} se o empregado pertence à folha dessa data
+     */
     public abstract boolean deveReceberEm(LocalDate dataPagamento);
 
+    /**
+     * Determina a data inicial do período considerado no pagamento.
+     *
+     * @param dataPagamento data da folha
+     * @return início do período de pagamento
+     */
     public abstract LocalDate inicioPeriodoPagamento(LocalDate dataPagamento);
 
     protected abstract Contracheque calcularDadosFolha(LocalDate dataPagamento);
@@ -200,28 +212,10 @@ public abstract class Empregado implements Serializable {
     public Contracheque calcularContracheque(LocalDate dataPagamento) {
         Contracheque dados = calcularDadosFolha(dataPagamento);
 
-        if (dados.getSalarioBruto().compareTo(BigDecimal.ZERO) == 0) {
-            return dados.comDeducoes(BigDecimal.ZERO, BigDecimal.ZERO);
-        }
-
-        BigDecimal descontos = BigDecimal.ZERO;
-
-        if (sindicalizado) {
-            int diasTaxaSindical = calcularDiasTaxaSindical(dataPagamento);
-
-            descontos = descontos.add(
-                    taxaSindical.multiply(
-                            BigDecimal.valueOf(diasTaxaSindical)
-                    )
-            );
-
-            descontos = descontos.add(
-                    getTaxasServico(
-                            inicioPeriodoPagamento(dataPagamento),
-                            dataPagamento.plusDays(1)
-                    )
-            );
-        }
+        BigDecimal descontos = calcularDescontosAplicados(
+                dataPagamento,
+                dados.getSalarioBruto()
+        );
 
         BigDecimal salarioLiquido =
                 dados.getSalarioBruto().subtract(descontos);
@@ -232,35 +226,87 @@ public abstract class Empregado implements Serializable {
         );
     }
 
-    private int calcularDiasTaxaSindical(LocalDate dataPagamento) {
-        LocalDate dataAnterior = dataPagamento.minusDays(1);
-
-        // Retrocede até a última folha com salário bruto positivo para
-        // acumular os dias de taxa sindical desde esse pagamento.
-        while (!dataAnterior.isBefore(INICIO_CONTRATO_PADRAO)) {
-            if (deveReceberEm(dataAnterior)) {
-                Contracheque dadosAnteriores =
-                        calcularDadosFolha(dataAnterior);
-
-                if (dadosAnteriores.getSalarioBruto()
-                        .compareTo(BigDecimal.ZERO) > 0) {
-
-                    return (int) ChronoUnit.DAYS.between(
-                            dataAnterior,
-                            dataPagamento
-                    );
-                }
-            }
-
-            dataAnterior = dataAnterior.minusDays(1);
-        }
-
-        return (int) ChronoUnit.DAYS.between(
-                INICIO_CONTRATO_PADRAO,
-                dataPagamento
-        ) + 1;
+    /**
+     * Informa a data a partir da qual as deduções sindicais podem ser
+     * acumuladas. Assalariados e comissionados usam a data padrão do
+     * contrato; horistas especializam este comportamento com base no
+     * primeiro cartão de ponto.
+     *
+     * @return data de início do contrato para fins de folha
+     */
+    protected LocalDate dataInicioContrato() {
+        return INICIO_CONTRATO_PADRAO;
     }
 
+    private BigDecimal calcularDescontosAplicados(
+            LocalDate dataPagamento,
+            BigDecimal salarioBrutoAtual
+    ) {
+        if (!sindicalizado) {
+            return BigDecimal.ZERO;
+        }
+
+        LocalDate inicioContrato = dataInicioContrato();
+
+        if (inicioContrato == null || dataPagamento.isBefore(inicioContrato)) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal saldoPendente = BigDecimal.ZERO;
+        LocalDate inicioPeriodo = inicioContrato;
+        LocalDate data = inicioContrato;
+
+        // Reconstitui as deduções folha a folha para carregar apenas o saldo
+        // que não pôde ser descontado em pagamentos anteriores.
+        while (!data.isAfter(dataPagamento)) {
+            if (deveReceberEm(data)) {
+                int diasTaxaSindical = (int) ChronoUnit.DAYS.between(
+                        inicioPeriodo,
+                        data
+                ) + 1;
+
+                saldoPendente = saldoPendente.add(
+                        taxaSindical.multiply(
+                                BigDecimal.valueOf(diasTaxaSindical)
+                        )
+                );
+
+                saldoPendente = saldoPendente.add(
+                        getTaxasServico(
+                                inicioPeriodo,
+                                data.plusDays(1)
+                        )
+                );
+
+                BigDecimal salarioBruto = data.equals(dataPagamento)
+                        ? salarioBrutoAtual
+                        : calcularDadosFolha(data).getSalarioBruto();
+
+                BigDecimal descontoAplicado =
+                        saldoPendente.min(salarioBruto);
+
+                saldoPendente =
+                        saldoPendente.subtract(descontoAplicado);
+
+                if (data.equals(dataPagamento)) {
+                    return descontoAplicado;
+                }
+
+                inicioPeriodo = data.plusDays(1);
+            }
+
+            data = data.plusDays(1);
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * Produz a descrição textual do método de pagamento configurado
+     * para o empregado.
+     *
+     * @return descrição utilizada no relatório da folha
+     */
     public String descricaoPagamento() {
         switch (metodoPagamento) {
             case "correios":

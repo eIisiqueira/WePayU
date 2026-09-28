@@ -96,6 +96,11 @@ public class SistemaFolha {
         return empregados.get(id);
     }
 
+    /**
+     * Retorna a quantidade de empregados mantidos pelo sistema.
+     *
+     * @return número de empregados cadastrados
+     */
     public int getNumeroDeEmpregados() {
         return empregados.size();
     }
