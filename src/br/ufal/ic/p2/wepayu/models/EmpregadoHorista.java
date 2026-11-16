@@ -1,15 +1,22 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
 
 public class EmpregadoHorista extends Empregado {
 
     private static final BigDecimal LIMITE_HORAS_NORMAIS =
             new BigDecimal("8");
+
+    private static final BigDecimal ADICIONAL_HORA_EXTRA =
+            new BigDecimal("1.5");
 
     private final List<CartaoPonto> cartoes = new ArrayList<>();
 
@@ -18,8 +25,15 @@ public class EmpregadoHorista extends Empregado {
             String nome,
             String endereco,
             BigDecimal salario
-    ) {
+    ) throws EmpregadoInvalidoException, SalarioInvalidoException {
+
         super(id, nome, endereco, salario);
+    }
+
+    public EmpregadoHorista(Empregado origem, BigDecimal salario)
+            throws SalarioInvalidoException {
+
+        super(origem, salario);
     }
 
     @Override
@@ -38,8 +52,7 @@ public class EmpregadoHorista extends Empregado {
     }
 
     /**
-     * Considera como início do contrato a data do primeiro cartão de ponto
-     * lançado para o empregado horista.
+     * Considera como início do contrato a data do primeiro cartão de ponto.
      *
      * @return data do primeiro cartão ou {@code null} se ainda não houver cartões
      */
@@ -58,13 +71,6 @@ public class EmpregadoHorista extends Empregado {
         return primeiraData;
     }
 
-    /**
-     * Calcula os dados brutos da folha do empregado horista,
-     * considerando horas normais e horas extras do período.
-     *
-     * @param dataPagamento data do pagamento
-     * @return contracheque com os dados brutos do período
-     */
     @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         LocalDate inicio = inicioPeriodoPagamento(dataPagamento);
@@ -76,16 +82,11 @@ public class EmpregadoHorista extends Empregado {
         BigDecimal horasExtras =
                 getHorasExtrasTrabalhadas(inicio, fimExclusivo);
 
-        BigDecimal parteNormal =
-                horasNormais.multiply(getSalario());
-
-        BigDecimal parteExtra =
-                horasExtras
+        BigDecimal salarioBruto = horasNormais
+                .multiply(getSalario())
+                .add(horasExtras
                         .multiply(getSalario())
-                        .multiply(new BigDecimal("1.5"));
-
-        BigDecimal salarioBruto =
-                parteNormal.add(parteExtra);
+                        .multiply(ADICIONAL_HORA_EXTRA));
 
         return new Contracheque(
                 this,
@@ -101,47 +102,23 @@ public class EmpregadoHorista extends Empregado {
     }
 
     @Override
-    public String getSecaoFolha() {
-        return "HORISTAS";
+    protected void registrarEm(
+            SecoesFolha secoes,
+            Contracheque contracheque
+    ) {
+        secoes.adicionarHorista(contracheque);
     }
 
     @Override
-    public String formatarLinhaFolha(Contracheque contracheque) {
-        return String.format(
-                "%-36s %5s %5s %13s %9s %15s %s",
-                getNome(),
-                formatarNumero(contracheque.getHorasNormais()),
-                formatarNumero(contracheque.getHorasExtras()),
-                formatarValor(contracheque.getSalarioBruto()),
-                formatarValor(contracheque.getDescontos()),
-                formatarValor(contracheque.getSalarioLiquido()),
-                descricaoPagamento()
-        );
-    }
+    public void lancaCartao(LocalDate data, BigDecimal horas)
+            throws HorasInvalidasException {
 
-    /**
-     * Registra um cartão de ponto para este empregado horista.
-     *
-     * A data e a quantidade de horas já chegam validadas pela camada
-     * responsável por coordenar a operação.
-     *
-     * @param data data do cartão de ponto
-     * @param horas quantidade de horas trabalhadas
-     */
-    @Override
-    public void lancaCartao(LocalDate data, BigDecimal horas) {
         cartoes.add(new CartaoPonto(data, horas));
     }
 
     /**
-     * Soma as horas normais registradas nos cartões de ponto pertencentes
-     * ao intervalo informado.
-     *
-     * Em cada dia são consideradas no máximo oito horas como normais.
-     *
-     * @param dataInicial início inclusivo do intervalo
-     * @param dataFinal fim exclusivo do intervalo
-     * @return total de horas normais trabalhadas
+     * Soma as horas normais dos cartões do intervalo, considerando no
+     * máximo oito horas normais por cartão.
      */
     @Override
     public BigDecimal getHorasNormaisTrabalhadas(
@@ -151,15 +128,9 @@ public class EmpregadoHorista extends Empregado {
         BigDecimal total = BigDecimal.ZERO;
 
         for (CartaoPonto cartao : cartoes) {
-            if (estaNoIntervalo(
-                    cartao.getData(),
-                    dataInicial,
-                    dataFinal
-            )) {
-                // Em cada cartão, apenas as primeiras 8 horas contam como horas normais.
+            if (estaNoIntervalo(cartao.getData(), dataInicial, dataFinal)) {
                 total = total.add(
-                        cartao.getHoras()
-                                .min(LIMITE_HORAS_NORMAIS)
+                        cartao.getHoras().min(LIMITE_HORAS_NORMAIS)
                 );
             }
         }
@@ -168,12 +139,7 @@ public class EmpregadoHorista extends Empregado {
     }
 
     /**
-     * Soma, nos cartões de ponto pertencentes ao intervalo informado,
-     * somente as horas trabalhadas além das oito horas normais de cada dia.
-     *
-     * @param dataInicial início inclusivo do intervalo
-     * @param dataFinal fim exclusivo do intervalo
-     * @return total de horas extras trabalhadas
+     * Soma apenas as horas que excedem as oito horas normais de cada cartão.
      */
     @Override
     public BigDecimal getHorasExtrasTrabalhadas(
@@ -183,17 +149,12 @@ public class EmpregadoHorista extends Empregado {
         BigDecimal total = BigDecimal.ZERO;
 
         for (CartaoPonto cartao : cartoes) {
-            if (estaNoIntervalo(
-                    cartao.getData(),
-                    dataInicial,
-                    dataFinal
-            )
+            if (estaNoIntervalo(cartao.getData(), dataInicial, dataFinal)
                     && cartao.getHoras()
                     .compareTo(LIMITE_HORAS_NORMAIS) > 0) {
 
                 total = total.add(
-                        cartao.getHoras()
-                                .subtract(LIMITE_HORAS_NORMAIS)
+                        cartao.getHoras().subtract(LIMITE_HORAS_NORMAIS)
                 );
             }
         }

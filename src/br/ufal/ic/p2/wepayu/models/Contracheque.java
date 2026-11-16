@@ -77,6 +77,15 @@ public final class Contracheque {
         return salarioLiquido;
     }
 
+    /**
+     * Envia este contracheque à seção da folha do tipo do seu empregado.
+     *
+     * @param secoes destino organizado por seção
+     */
+    public void registrarEm(SecoesFolha secoes) {
+        empregado.registrarEm(secoes, this);
+    }
+
     public Contracheque comDeducoes(
             BigDecimal descontos,
             BigDecimal salarioLiquido

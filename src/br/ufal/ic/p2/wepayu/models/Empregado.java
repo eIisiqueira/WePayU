@@ -1,45 +1,73 @@
 package br.ufal.ic.p2.wepayu.models;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Optional;
 
-import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
-import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoHoristaException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
 
 /**
  * Classe base abstrata da hierarquia de empregados do sistema.
  *
- * Concentra os dados comuns aos diferentes tipos de empregado e define
- * operações especializadas polimorficamente pelas subclasses. A associação
- * sindical e o método de pagamento são delegados a {@link MembroSindicato}
- * e {@link MetodoPagamento}.
+ * Mantém apenas os dados comuns a todos os empregados (identificação,
+ * nome, endereço e salário), garantindo que nunca assumam valores
+ * inválidos, e define as operações que cada tipo especializa por
+ * polimorfismo. A associação sindical e o método de pagamento são
+ * delegados a {@link MembroSindicato} e {@link MetodoPagamento}.
  */
-
 public abstract class Empregado implements Serializable {
 
     private static final LocalDate INICIO_CONTRATO_PADRAO =
             LocalDate.of(2005, 1, 1);
 
-    private String id;
+    private final String id;
     private String nome;
     private String endereco;
     private BigDecimal salario;
     private MembroSindicato sindicato;
     private MetodoPagamento metodoPagamento;
 
-    public Empregado(String id, String nome, String endereco, BigDecimal salario) {
-        this.id = id;
-        this.nome = nome;
-        this.endereco = endereco;
-        this.salario = salario;
+    protected Empregado(
+            String id,
+            String nome,
+            String endereco,
+            BigDecimal salario
+    ) throws EmpregadoInvalidoException, SalarioInvalidoException {
+
+        this.id = Objects.requireNonNull(id);
+        this.nome = validarNome(nome);
+        this.endereco = validarEndereco(endereco);
+        this.salario = validarSalario(salario);
         this.metodoPagamento = new PagamentoEmMaos();
+    }
+
+    /**
+     * Cria um empregado de outro tipo a partir de um existente, preservando
+     * identificação, nome, endereço, sindicato e método de pagamento.
+     * Utilizado na mudança de tipo do empregado.
+     *
+     * @param origem empregado cuja representação está sendo substituída
+     * @param salario salário do novo empregado
+     * @throws SalarioInvalidoException se o salário for nulo ou negativo
+     */
+    protected Empregado(Empregado origem, BigDecimal salario)
+            throws SalarioInvalidoException {
+
+        this.id = origem.id;
+        this.nome = origem.nome;
+        this.endereco = origem.endereco;
+        this.salario = validarSalario(salario);
+        this.sindicato = origem.sindicato;
+        this.metodoPagamento = origem.metodoPagamento;
     }
 
     public String getId() {
@@ -58,6 +86,10 @@ public abstract class Empregado implements Serializable {
         return salario;
     }
 
+    public MetodoPagamento getMetodoPagamento() {
+        return metodoPagamento;
+    }
+
     public boolean isSindicalizado() {
         return sindicato != null;
     }
@@ -73,20 +105,22 @@ public abstract class Empregado implements Serializable {
                 .orElseThrow(EmpregadoNaoSindicalizadoException::new);
     }
 
-    public MetodoPagamento getMetodoPagamento() {
-        return metodoPagamento;
+    public void alterarNome(String nome)
+            throws EmpregadoInvalidoException {
+
+        this.nome = validarNome(nome);
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
+    public void alterarEndereco(String endereco)
+            throws EmpregadoInvalidoException {
+
+        this.endereco = validarEndereco(endereco);
     }
 
-    public void setEndereco(String endereco) {
-        this.endereco = endereco;
-    }
+    public void alterarSalario(BigDecimal salario)
+            throws SalarioInvalidoException {
 
-    public void setSalario(BigDecimal salario) {
-        this.salario = salario;
+        this.salario = validarSalario(salario);
     }
 
     public void alterarMetodoPagamento(MetodoPagamento metodoPagamento) {
@@ -99,17 +133,6 @@ public abstract class Empregado implements Serializable {
 
     public void dessindicalizar() {
         this.sindicato = null;
-    }
-
-    /**
-     * Copia para outro empregado o estado comum que deve ser preservado
-     * durante uma mudança de tipo: filiação sindical e método de pagamento.
-     *
-     * @param destino empregado que receberá o estado comum
-     */
-    public void copiarEstadoComumPara(Empregado destino) {
-        destino.sindicato = this.sindicato;
-        destino.metodoPagamento = this.metodoPagamento;
     }
 
     public abstract String getTipo();
@@ -131,11 +154,25 @@ public abstract class Empregado implements Serializable {
      */
     public abstract LocalDate inicioPeriodoPagamento(LocalDate dataPagamento);
 
+    /**
+     * Calcula os valores brutos do pagamento, específicos de cada tipo.
+     *
+     * @param dataPagamento data do pagamento
+     * @return contracheque ainda sem descontos
+     */
     protected abstract Contracheque calcularDadosFolha(LocalDate dataPagamento);
 
-    public abstract String getSecaoFolha();
-
-    public abstract String formatarLinhaFolha(Contracheque contracheque);
+    /**
+     * Encaminha o contracheque à seção da folha correspondente ao tipo
+     * do empregado, sem que a folha precise inspecionar o tipo.
+     *
+     * @param secoes destino que organiza os contracheques por seção
+     * @param contracheque contracheque deste empregado
+     */
+    protected abstract void registrarEm(
+            SecoesFolha secoes,
+            Contracheque contracheque
+    );
 
     /**
      * Calcula o contracheque do empregado para a data informada,
@@ -158,13 +195,63 @@ public abstract class Empregado implements Serializable {
     /**
      * Informa a data a partir da qual as deduções sindicais podem ser
      * acumuladas. Assalariados e comissionados usam a data padrão do
-     * contrato; horistas especializam este comportamento com base no
-     * primeiro cartão de ponto.
+     * contrato; horistas especializam este comportamento.
      *
      * @return data de início do contrato para fins de folha
      */
     protected LocalDate dataInicioContrato() {
         return INICIO_CONTRATO_PADRAO;
+    }
+
+    public BigDecimal getComissao()
+            throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
+    public void alterarComissao(BigDecimal comissao)
+            throws EmpregadoNaoComissionadoException,
+            ComissaoInvalidaException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
+    public void lancaVenda(LocalDate data, BigDecimal valor)
+            throws EmpregadoNaoComissionadoException,
+            ValorVendaInvalidoException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
+    public BigDecimal getVendasRealizadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoComissionadoException {
+
+        throw new EmpregadoNaoComissionadoException();
+    }
+
+    public void lancaCartao(LocalDate data, BigDecimal horas)
+            throws EmpregadoNaoHoristaException,
+            HorasInvalidasException {
+
+        throw new EmpregadoNaoHoristaException();
+    }
+
+    public BigDecimal getHorasNormaisTrabalhadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoHoristaException {
+
+        throw new EmpregadoNaoHoristaException();
+    }
+
+    public BigDecimal getHorasExtrasTrabalhadas(
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) throws EmpregadoNaoHoristaException {
+
+        throw new EmpregadoNaoHoristaException();
     }
 
     /**
@@ -179,175 +266,41 @@ public abstract class Empregado implements Serializable {
         return !data.isBefore(dataInicial) && data.isBefore(dataFinal);
     }
 
-    /**
-     * Produz a descrição textual do método de pagamento configurado
-     * para o empregado.
-     *
-     * @return descrição utilizada no relatório da folha
-     */
-    public String descricaoPagamento() {
-        return metodoPagamento.descricao(endereco);
-    }
+    private static String validarNome(String nome)
+            throws EmpregadoInvalidoException {
 
-    public String getAtributo(String atributo)
-            throws AtributoNaoExisteException,
-            EmpregadoNaoComissionadoException,
-            EmpregadoNaoSindicalizadoException,
-            EmpregadoNaoRecebeEmBancoException {
-
-        switch (atributo) {
-
-            case "nome":
-                return getNome();
-
-            case "endereco":
-                return getEndereco();
-
-            case "tipo":
-                return getTipo();
-
-            case "salario":
-                return formatarValor(getSalario());
-
-            case "comissao":
-                throw new EmpregadoNaoComissionadoException();
-
-            case "metodoPagamento":
-                return metodoPagamento.getTipo();
-
-            case "banco":
-                return metodoPagamento.getBanco();
-
-            case "agencia":
-                return metodoPagamento.getAgencia();
-
-            case "contaCorrente":
-                return metodoPagamento.getContaCorrente();
-
-            case "sindicalizado":
-                return String.valueOf(isSindicalizado());
-
-            case "idSindicato":
-                return getMembroSindicato().getIdentificacao();
-
-            case "taxaSindical":
-                return formatarValor(getMembroSindicato().getTaxaSindical());
-
-            default:
-                throw new AtributoNaoExisteException();
+        if (nome == null || nome.isEmpty()) {
+            throw new EmpregadoInvalidoException("Nome nao pode ser nulo.");
         }
+
+        return nome;
     }
 
-    public static String formatarValor(BigDecimal valor) {
-        return valor
-                .setScale(2, RoundingMode.HALF_UP)
-                .toPlainString()
-                .replace(".", ",");
+    private static String validarEndereco(String endereco)
+            throws EmpregadoInvalidoException {
+
+        if (endereco == null || endereco.isEmpty()) {
+            throw new EmpregadoInvalidoException(
+                    "Endereco nao pode ser nulo."
+            );
+        }
+
+        return endereco;
     }
 
-    public static String formatarNumero(BigDecimal valor) {
-        return valor
-                .stripTrailingZeros()
-                .toPlainString()
-                .replace(".", ",");
+    private static BigDecimal validarSalario(BigDecimal salario)
+            throws SalarioInvalidoException {
+
+        if (salario == null) {
+            throw new SalarioInvalidoException("Salario nao pode ser nulo.");
+        }
+
+        if (salario.signum() < 0) {
+            throw new SalarioInvalidoException(
+                    "Salario deve ser nao-negativo."
+            );
+        }
+
+        return salario;
     }
-
-    public void alterarComissao(BigDecimal comissao)
-            throws EmpregadoNaoComissionadoException {
-
-        throw new EmpregadoNaoComissionadoException();
-    }
-
-    /**
-     * Define a operação polimórfica de lançamento de venda.
-     * A implementação padrão rejeita a operação para empregados
-     * que não são comissionados.
-     *
-     * @param data data da venda
-     * @param valor valor da venda
-     * @throws EmpregadoNaoComissionadoException se o empregado não suportar vendas
-     */
-    public void lancaVenda(LocalDate data, BigDecimal valor)
-            throws EmpregadoNaoComissionadoException {
-
-        throw new EmpregadoNaoComissionadoException();
-    }
-
-    /**
-     * Define a consulta polimórfica das vendas realizadas em um período.
-     * A implementação padrão rejeita a consulta para empregados
-     * que não são comissionados.
-     *
-     * @param dataInicial início do período
-     * @param dataFinal fim do período
-     * @return total das vendas realizadas
-     * @throws EmpregadoNaoComissionadoException se o empregado não suportar vendas
-     */
-    public BigDecimal getVendasRealizadas(
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) throws EmpregadoNaoComissionadoException {
-
-        throw new EmpregadoNaoComissionadoException();
-    }
-
-    /**
-     * Define a operação polimórfica de lançamento de cartão de ponto.
-     *
-     * Na implementação base, a operação é rejeitada. Subclasses que
-     * suportam cartões de ponto devem sobrescrever este comportamento.
-     *
-     * @param data data do cartão de ponto
-     * @param horas quantidade de horas trabalhadas
-     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
-     *                                      não suporta cartão de ponto
-     */
-    public void lancaCartao(LocalDate data, BigDecimal horas)
-            throws EmpregadoNaoHoristaException {
-
-        throw new EmpregadoNaoHoristaException();
-    }
-
-    /**
-     * Define a consulta polimórfica das horas normais trabalhadas
-     * em determinado intervalo.
-     *
-     * Na implementação base, a consulta é rejeitada. Subclasses que
-     * controlam horas trabalhadas devem sobrescrever este comportamento.
-     *
-     * @param dataInicial início do intervalo
-     * @param dataFinal fim do intervalo
-     * @return total de horas normais trabalhadas
-     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
-     *                                      não suporta essa consulta
-     */
-    public BigDecimal getHorasNormaisTrabalhadas(
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) throws EmpregadoNaoHoristaException {
-
-        throw new EmpregadoNaoHoristaException();
-    }
-
-    /**
-     * Define a consulta polimórfica das horas extras trabalhadas
-     * em determinado intervalo.
-     *
-     * Na implementação base, a consulta é rejeitada. Subclasses que
-     * controlam horas trabalhadas devem sobrescrever este comportamento.
-     *
-     * @param dataInicial início do intervalo
-     * @param dataFinal fim do intervalo
-     * @return total de horas extras trabalhadas
-     * @throws EmpregadoNaoHoristaException quando o tipo de empregado
-     *                                      não suporta essa consulta
-     */
-    public BigDecimal getHorasExtrasTrabalhadas(
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) throws EmpregadoNaoHoristaException {
-
-        throw new EmpregadoNaoHoristaException();
-    }
-
 }

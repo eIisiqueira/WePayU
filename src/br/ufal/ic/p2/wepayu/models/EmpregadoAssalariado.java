@@ -3,15 +3,28 @@ package br.ufal.ic.p2.wepayu.models;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
+
 public class EmpregadoAssalariado extends Empregado {
 
     public EmpregadoAssalariado(
             String id,
             String nome,
             String endereco,
-            BigDecimal salario) {
+            BigDecimal salario
+    ) throws EmpregadoInvalidoException, SalarioInvalidoException {
 
         super(id, nome, endereco, salario);
+    }
+
+    /**
+     * Converte outro empregado em assalariado, mantendo o salário atual.
+     */
+    public EmpregadoAssalariado(Empregado origem)
+            throws SalarioInvalidoException {
+
+        super(origem, origem.getSalario());
     }
 
     @Override
@@ -29,13 +42,6 @@ public class EmpregadoAssalariado extends Empregado {
         return dataPagamento.withDayOfMonth(1);
     }
 
-    /**
-     * Calcula os dados brutos da folha do empregado assalariado
-     * com base em seu salário mensal.
-     *
-     * @param dataPagamento data do pagamento
-     * @return contracheque com os dados brutos do pagamento
-     */
     @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         BigDecimal salarioBruto = getSalario();
@@ -54,19 +60,10 @@ public class EmpregadoAssalariado extends Empregado {
     }
 
     @Override
-    public String getSecaoFolha() {
-        return "ASSALARIADOS";
-    }
-
-    @Override
-    public String formatarLinhaFolha(Contracheque contracheque) {
-        return String.format(
-                "%-48s %13s %9s %15s %s",
-                getNome(),
-                formatarValor(contracheque.getSalarioBruto()),
-                formatarValor(contracheque.getDescontos()),
-                formatarValor(contracheque.getSalarioLiquido()),
-                descricaoPagamento()
-        );
+    protected void registrarEm(
+            SecoesFolha secoes,
+            Contracheque contracheque
+    ) {
+        secoes.adicionarAssalariado(contracheque);
     }
 }

@@ -2,24 +2,24 @@ package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
-import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
-import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
 
 /**
  * Representa um empregado comissionado, com salário base,
  * taxa de comissão e resultados de vendas associados.
  *
  * Sua remuneração combina a parcela fixa com a comissão
- * sobre as vendas do período.
+ * sobre as vendas do período. A taxa de comissão nunca pode
+ * ser nula ou negativa.
  */
-
 public class EmpregadoComissionado extends Empregado {
 
     private static final LocalDate PRIMEIRA_DATA_PAGAMENTO =
@@ -33,19 +33,35 @@ public class EmpregadoComissionado extends Empregado {
             String nome,
             String endereco,
             BigDecimal salario,
-            BigDecimal comissao) {
+            BigDecimal comissao
+    ) throws EmpregadoInvalidoException,
+            SalarioInvalidoException,
+            ComissaoInvalidaException {
 
         super(id, nome, endereco, salario);
-        this.comissao = comissao;
+        this.comissao = validarComissao(comissao);
     }
 
-    public BigDecimal getValorComissao() {
+    /**
+     * Converte outro empregado em comissionado, mantendo o salário atual.
+     */
+    public EmpregadoComissionado(Empregado origem, BigDecimal comissao)
+            throws SalarioInvalidoException, ComissaoInvalidaException {
+
+        super(origem, origem.getSalario());
+        this.comissao = validarComissao(comissao);
+    }
+
+    @Override
+    public BigDecimal getComissao() {
         return comissao;
     }
 
     @Override
-    public void alterarComissao(BigDecimal comissao) {
-        this.comissao = comissao;
+    public void alterarComissao(BigDecimal comissao)
+            throws ComissaoInvalidaException {
+
+        this.comissao = validarComissao(comissao);
     }
 
     @Override
@@ -59,13 +75,12 @@ public class EmpregadoComissionado extends Empregado {
             return false;
         }
 
-        long diasDesdePrimeiroPagamento =
-                ChronoUnit.DAYS.between(
-                        PRIMEIRA_DATA_PAGAMENTO,
-                        dataPagamento
-                );
+        long dias = ChronoUnit.DAYS.between(
+                PRIMEIRA_DATA_PAGAMENTO,
+                dataPagamento
+        );
 
-        return diasDesdePrimeiroPagamento % 14 == 0;
+        return dias % 14 == 0;
     }
 
     @Override
@@ -73,13 +88,6 @@ public class EmpregadoComissionado extends Empregado {
         return dataPagamento.minusDays(13);
     }
 
-    /**
-     * Calcula os dados brutos da folha do empregado comissionado,
-     * combinando a parcela fixa com a comissão sobre as vendas do período.
-     *
-     * @param dataPagamento data do pagamento
-     * @return contracheque com os dados brutos do pagamento
-     */
     @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         LocalDate inicio = inicioPeriodoPagamento(dataPagamento);
@@ -96,8 +104,7 @@ public class EmpregadoComissionado extends Empregado {
                 .multiply(comissao)
                 .setScale(2, RoundingMode.DOWN);
 
-        BigDecimal salarioBruto =
-                fixo.add(valorComissao);
+        BigDecimal salarioBruto = fixo.add(valorComissao);
 
         return new Contracheque(
                 this,
@@ -113,49 +120,22 @@ public class EmpregadoComissionado extends Empregado {
     }
 
     @Override
-    public String getSecaoFolha() {
-        return "COMISSIONADOS";
+    protected void registrarEm(
+            SecoesFolha secoes,
+            Contracheque contracheque
+    ) {
+        secoes.adicionarComissionado(contracheque);
     }
 
     @Override
-    public String formatarLinhaFolha(Contracheque contracheque) {
-        return String.format(
-                "%-21s %8s %8s %8s %13s %9s %15s %s",
-                getNome(),
-                formatarValor(contracheque.getFixo()),
-                formatarValor(contracheque.getVendas()),
-                formatarValor(contracheque.getComissao()),
-                formatarValor(contracheque.getSalarioBruto()),
-                formatarValor(contracheque.getDescontos()),
-                formatarValor(contracheque.getSalarioLiquido()),
-                descricaoPagamento()
-        );
-    }
+    public void lancaVenda(LocalDate data, BigDecimal valor)
+            throws ValorVendaInvalidoException {
 
-    @Override
-    public String getAtributo(String atributo)
-            throws AtributoNaoExisteException,
-            EmpregadoNaoComissionadoException,
-            EmpregadoNaoSindicalizadoException,
-            EmpregadoNaoRecebeEmBancoException {
-
-        if (atributo.equals("comissao")) {
-            return formatarValor(comissao);
-        }
-        return super.getAtributo(atributo);
-    }
-    @Override
-    public void lancaVenda(LocalDate data, BigDecimal valor) {
         vendas.add(new ResultadoVenda(data, valor));
     }
 
     /**
-     * Soma os valores das vendas realizadas no período informado.
-     * A data inicial é incluída e a data final é excluída.
-     *
-     * @param dataInicial início inclusivo do período
-     * @param dataFinal fim exclusivo do período
-     * @return total vendido no período
+     * Soma as vendas do período (início inclusivo, fim exclusivo).
      */
     @Override
     public BigDecimal getVendasRealizadas(
@@ -165,15 +145,27 @@ public class EmpregadoComissionado extends Empregado {
         BigDecimal total = BigDecimal.ZERO;
 
         for (ResultadoVenda venda : vendas) {
-            if (estaNoIntervalo(
-                    venda.getData(),
-                    dataInicial,
-                    dataFinal
-            )) {
+            if (estaNoIntervalo(venda.getData(), dataInicial, dataFinal)) {
                 total = total.add(venda.getValor());
             }
         }
 
         return total;
+    }
+
+    private static BigDecimal validarComissao(BigDecimal comissao)
+            throws ComissaoInvalidaException {
+
+        if (comissao == null) {
+            throw new ComissaoInvalidaException("Comissao nao pode ser nula.");
+        }
+
+        if (comissao.signum() < 0) {
+            throw new ComissaoInvalidaException(
+                    "Comissao deve ser nao-negativa."
+            );
+        }
+
+        return comissao;
     }
 }

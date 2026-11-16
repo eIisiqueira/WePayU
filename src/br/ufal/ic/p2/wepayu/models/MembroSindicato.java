@@ -9,6 +9,7 @@ import java.util.List;
 
 import br.ufal.ic.p2.wepayu.exception.IdentificacaoSindicatoInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.ValorTaxaServicoInvalidoException;
 
 /**
  * Associação de um empregado ao sindicato: identificação, taxa sindical
@@ -56,7 +57,8 @@ public class MembroSindicato implements Serializable {
         return this.identificacao.equals(identificacao);
     }
 
-    public void lancaTaxaServico(LocalDate data, BigDecimal valor) {
+    public void lancaTaxaServico(LocalDate data, BigDecimal valor)
+            throws ValorTaxaServicoInvalidoException {
 
         taxasServico.add(new TaxaServico(data, valor));
     }
