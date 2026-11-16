@@ -19,15 +19,36 @@ Neste primeiro milestone foram implementadas as User Stories 1 a 8.
 
 ## Estrutura principal
 
-O projeto possui uma `Facade`, usada pelos testes do EasyAccept, e a classe `SistemaFolha`, responsável por coordenar as operações do sistema.
+### Pacote `br.ufal.ic.p2.wepayu`
 
-Os empregados são representados por uma classe abstrata `Empregado` e pelas subclasses:
+- `Facade`: interface usada pelos testes do EasyAccept. Converte os parâmetros recebidos, delega a operação ao `SistemaFolha` e formata o retorno.
+- `SistemaFolha`: coordena o sistema. Mantém e localiza os empregados, gera os IDs, verifica regras que envolvem mais de um empregado (como a identificação sindical duplicada), controla o undo/redo e a persistência.
+- `ConversorEntrada`: converte os textos recebidos pela `Facade` em datas, números e métodos de pagamento.
+- `Formatador`: formata valores e horas no padrão esperado pelos testes (vírgula como separador decimal).
+- `RelatorioFolha`: monta e grava o arquivo da folha de pagamento.
+
+### Pacote `models`
+
+Os empregados são representados pela classe abstrata `Empregado`, que guarda apenas os dados comuns (id, nome, endereço e salário), e pelas subclasses:
 
 - `EmpregadoHorista`
 - `EmpregadoAssalariado`
 - `EmpregadoComissionado`
 
-Também existem classes para cartão de ponto, vendas, taxas de serviço e contracheque.
+As diferenças entre os tipos (cartão de ponto, vendas, comissão, data de pagamento e cálculo do salário) são resolvidas por polimorfismo, sem uso de `instanceof`.
+
+Outras classes do domínio:
+
+- `MembroSindicato`: identificação sindical, taxa sindical, taxas de serviço e cálculo dos descontos;
+- `MetodoPagamento`, com as subclasses `PagamentoEmMaos`, `PagamentoCorreios` e `PagamentoBanco`;
+- `CartaoPonto`, `ResultadoVenda`, `TaxaServico` e `Contracheque`;
+- `SecoesFolha`: permite que cada tipo de empregado indique em qual seção da folha aparece.
+
+Os objetos de domínio validam os próprios dados no construtor e nos métodos de alteração, então não podem assumir estados inválidos.
+
+### Pacote `exception`
+
+Exceções específicas para cada erro de domínio, com as mensagens exigidas pelos testes.
 
 ## Testes
 
@@ -65,9 +86,11 @@ us7.txt
 us8.txt
 ```
 
+Os testes com sufixo `_1` verificam a persistência e devem ser executados logo após o teste correspondente.
+
 ## Persistência
 
-Os dados do sistema são salvos em `wepayu.dat`.
+Os dados do sistema são salvos em `wepayu.dat`. Se a estrutura das classes mudar, é preciso apagar esse arquivo antes de rodar os testes novamente.
 
 ## Observação
 
