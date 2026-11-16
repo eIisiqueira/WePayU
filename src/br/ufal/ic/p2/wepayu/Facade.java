@@ -3,6 +3,7 @@ package br.ufal.ic.p2.wepayu;
 import java.math.BigDecimal;
 
 import br.ufal.ic.p2.wepayu.exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.AgendaJaExisteException;
 import br.ufal.ic.p2.wepayu.exception.AgendaNaoDisponivelException;
 import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
 import br.ufal.ic.p2.wepayu.exception.BancoInvalidoException;
@@ -10,6 +11,7 @@ import br.ufal.ic.p2.wepayu.exception.ComandoAposEncerrarSistemaException;
 import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.ContaCorrenteInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.DataInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.DescricaoAgendaInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoExisteException;
@@ -80,6 +82,13 @@ public class Facade {
         return Formatador.valor(
                 sistema.totalFolha(ConversorEntrada.data(data))
         );
+    }
+
+    public void criarAgendaDePagamentos(String descricao)
+            throws DescricaoAgendaInvalidaException,
+            AgendaJaExisteException {
+
+        sistema.criarAgenda(descricao);
     }
 
     public void rodaFolha(String data, String saida)

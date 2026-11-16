@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import br.ufal.ic.p2.wepayu.exception.AgendaJaExisteException;
 import br.ufal.ic.p2.wepayu.exception.AgendaNaoDisponivelException;
 import br.ufal.ic.p2.wepayu.exception.ComandoAposEncerrarSistemaException;
 import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.DataInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.DescricaoAgendaInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
 import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoExisteException;
@@ -258,6 +260,29 @@ public class SistemaFolha {
 
         byte[] estadoAnterior = criarSnapshot();
         empregados.put(emp, novo);
+        confirmarTransacao(estadoAnterior);
+    }
+
+    /**
+     * Cadastra uma nova agenda de pagamento, que passa a poder ser
+     * atribuída aos empregados.
+     *
+     * @param descricao descrição da agenda (ex.: "semanal 2 5", "mensal $")
+     * @throws DescricaoAgendaInvalidaException se a descrição for inválida
+     * @throws AgendaJaExisteException se a agenda já estiver disponível
+     */
+    public void criarAgenda(String descricao)
+            throws DescricaoAgendaInvalidaException,
+            AgendaJaExisteException {
+
+        AgendaPagamento agenda = AgendaPagamento.deDescricao(descricao);
+
+        if (agendas.containsKey(agenda.getDescricao())) {
+            throw new AgendaJaExisteException();
+        }
+
+        byte[] estadoAnterior = criarSnapshot();
+        agendas.put(agenda.getDescricao(), agenda);
         confirmarTransacao(estadoAnterior);
     }
 
