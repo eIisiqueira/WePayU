@@ -1,7 +1,6 @@
 package br.ufal.ic.p2.wepayu.models;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,28 +26,18 @@ public class EmpregadoHorista extends Empregado {
             BigDecimal salario
     ) throws EmpregadoInvalidoException, SalarioInvalidoException {
 
-        super(id, nome, endereco, salario);
+        super(id, nome, endereco, salario, AgendaPagamento.semanalPadrao());
     }
 
     public EmpregadoHorista(Empregado origem, BigDecimal salario)
             throws SalarioInvalidoException {
 
-        super(origem, salario);
+        super(origem, salario, AgendaPagamento.semanalPadrao());
     }
 
     @Override
     public String getTipo() {
         return "horista";
-    }
-
-    @Override
-    public boolean deveReceberEm(LocalDate dataPagamento) {
-        return dataPagamento.getDayOfWeek() == DayOfWeek.FRIDAY;
-    }
-
-    @Override
-    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
-        return dataPagamento.minusDays(6);
     }
 
     /**

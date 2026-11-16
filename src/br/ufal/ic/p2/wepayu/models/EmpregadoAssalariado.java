@@ -15,7 +15,7 @@ public class EmpregadoAssalariado extends Empregado {
             BigDecimal salario
     ) throws EmpregadoInvalidoException, SalarioInvalidoException {
 
-        super(id, nome, endereco, salario);
+        super(id, nome, endereco, salario, AgendaPagamento.mensalPadrao());
     }
 
     /**
@@ -24,7 +24,7 @@ public class EmpregadoAssalariado extends Empregado {
     public EmpregadoAssalariado(Empregado origem)
             throws SalarioInvalidoException {
 
-        super(origem, origem.getSalario());
+        super(origem, origem.getSalario(), AgendaPagamento.mensalPadrao());
     }
 
     @Override
@@ -33,18 +33,9 @@ public class EmpregadoAssalariado extends Empregado {
     }
 
     @Override
-    public boolean deveReceberEm(LocalDate dataPagamento) {
-        return dataPagamento.getDayOfMonth() == dataPagamento.lengthOfMonth();
-    }
-
-    @Override
-    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
-        return dataPagamento.withDayOfMonth(1);
-    }
-
-    @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
-        BigDecimal salarioBruto = getSalario();
+        BigDecimal salarioBruto =
+                getAgendaPagamento().valorProporcional(getSalario());
 
         return new Contracheque(
                 this,

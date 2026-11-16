@@ -3,7 +3,6 @@ package br.ufal.ic.p2.wepayu.models;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +21,6 @@ import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
  */
 public class EmpregadoComissionado extends Empregado {
 
-    private static final LocalDate PRIMEIRA_DATA_PAGAMENTO =
-            LocalDate.of(2005, 1, 14);
-
     private BigDecimal comissao;
     private final List<ResultadoVenda> vendas = new ArrayList<>();
 
@@ -38,7 +34,7 @@ public class EmpregadoComissionado extends Empregado {
             SalarioInvalidoException,
             ComissaoInvalidaException {
 
-        super(id, nome, endereco, salario);
+        super(id, nome, endereco, salario, AgendaPagamento.bissemanalPadrao());
         this.comissao = validarComissao(comissao);
     }
 
@@ -48,7 +44,8 @@ public class EmpregadoComissionado extends Empregado {
     public EmpregadoComissionado(Empregado origem, BigDecimal comissao)
             throws SalarioInvalidoException, ComissaoInvalidaException {
 
-        super(origem, origem.getSalario());
+        super(origem, origem.getSalario(),
+                AgendaPagamento.bissemanalPadrao());
         this.comissao = validarComissao(comissao);
     }
 
@@ -70,32 +67,12 @@ public class EmpregadoComissionado extends Empregado {
     }
 
     @Override
-    public boolean deveReceberEm(LocalDate dataPagamento) {
-        if (dataPagamento.isBefore(PRIMEIRA_DATA_PAGAMENTO)) {
-            return false;
-        }
-
-        long dias = ChronoUnit.DAYS.between(
-                PRIMEIRA_DATA_PAGAMENTO,
-                dataPagamento
-        );
-
-        return dias % 14 == 0;
-    }
-
-    @Override
-    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
-        return dataPagamento.minusDays(13);
-    }
-
-    @Override
     protected Contracheque calcularDadosFolha(LocalDate dataPagamento) {
         LocalDate inicio = inicioPeriodoPagamento(dataPagamento);
         LocalDate fimExclusivo = dataPagamento.plusDays(1);
 
-        BigDecimal fixo = getSalario()
-                .multiply(new BigDecimal("12"))
-                .divide(new BigDecimal("26"), 2, RoundingMode.DOWN);
+        BigDecimal fixo =
+                getAgendaPagamento().valorProporcional(getSalario());
 
         BigDecimal totalVendas =
                 getVendasRealizadas(inicio, fimExclusivo);

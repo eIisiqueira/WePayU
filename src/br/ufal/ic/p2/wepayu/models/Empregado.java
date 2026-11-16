@@ -35,12 +35,14 @@ public abstract class Empregado implements Serializable {
     private BigDecimal salario;
     private MembroSindicato sindicato;
     private MetodoPagamento metodoPagamento;
+    private AgendaPagamento agendaPagamento;
 
     protected Empregado(
             String id,
             String nome,
             String endereco,
-            BigDecimal salario
+            BigDecimal salario,
+            AgendaPagamento agendaPadrao
     ) throws EmpregadoInvalidoException, SalarioInvalidoException {
 
         this.id = Objects.requireNonNull(id);
@@ -48,19 +50,25 @@ public abstract class Empregado implements Serializable {
         this.endereco = validarEndereco(endereco);
         this.salario = validarSalario(salario);
         this.metodoPagamento = new PagamentoEmMaos();
+        this.agendaPagamento = Objects.requireNonNull(agendaPadrao);
     }
 
     /**
      * Cria um empregado de outro tipo a partir de um existente, preservando
      * identificação, nome, endereço, sindicato e método de pagamento.
+     * A agenda de pagamento passa a ser a padrão do novo tipo.
      * Utilizado na mudança de tipo do empregado.
      *
      * @param origem empregado cuja representação está sendo substituída
      * @param salario salário do novo empregado
+     * @param agendaPadrao agenda padrão do novo tipo
      * @throws SalarioInvalidoException se o salário for nulo ou negativo
      */
-    protected Empregado(Empregado origem, BigDecimal salario)
-            throws SalarioInvalidoException {
+    protected Empregado(
+            Empregado origem,
+            BigDecimal salario,
+            AgendaPagamento agendaPadrao
+    ) throws SalarioInvalidoException {
 
         this.id = origem.id;
         this.nome = origem.nome;
@@ -68,6 +76,7 @@ public abstract class Empregado implements Serializable {
         this.salario = validarSalario(salario);
         this.sindicato = origem.sindicato;
         this.metodoPagamento = origem.metodoPagamento;
+        this.agendaPagamento = Objects.requireNonNull(agendaPadrao);
     }
 
     public String getId() {
@@ -88,6 +97,10 @@ public abstract class Empregado implements Serializable {
 
     public MetodoPagamento getMetodoPagamento() {
         return metodoPagamento;
+    }
+
+    public AgendaPagamento getAgendaPagamento() {
+        return agendaPagamento;
     }
 
     public boolean isSindicalizado() {
@@ -127,6 +140,10 @@ public abstract class Empregado implements Serializable {
         this.metodoPagamento = Objects.requireNonNull(metodoPagamento);
     }
 
+    public void alterarAgendaPagamento(AgendaPagamento agendaPagamento) {
+        this.agendaPagamento = Objects.requireNonNull(agendaPagamento);
+    }
+
     public void sindicalizar(MembroSindicato sindicato) {
         this.sindicato = Objects.requireNonNull(sindicato);
     }
@@ -139,12 +156,14 @@ public abstract class Empregado implements Serializable {
 
     /**
      * Informa se o empregado deve receber pagamento na data informada,
-     * de acordo com a agenda definida por seu tipo.
+     * de acordo com sua agenda de pagamento.
      *
      * @param dataPagamento data a ser verificada
      * @return {@code true} se o empregado pertence à folha dessa data
      */
-    public abstract boolean deveReceberEm(LocalDate dataPagamento);
+    public boolean deveReceberEm(LocalDate dataPagamento) {
+        return agendaPagamento.deveReceberEm(dataPagamento);
+    }
 
     /**
      * Determina a data inicial do período considerado no pagamento.
@@ -152,7 +171,9 @@ public abstract class Empregado implements Serializable {
      * @param dataPagamento data da folha
      * @return início do período de pagamento
      */
-    public abstract LocalDate inicioPeriodoPagamento(LocalDate dataPagamento);
+    public LocalDate inicioPeriodoPagamento(LocalDate dataPagamento) {
+        return agendaPagamento.inicioPeriodo(dataPagamento);
+    }
 
     /**
      * Calcula os valores brutos do pagamento, específicos de cada tipo.

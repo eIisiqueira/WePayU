@@ -3,6 +3,7 @@ package br.ufal.ic.p2.wepayu;
 import java.math.BigDecimal;
 
 import br.ufal.ic.p2.wepayu.exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.AgendaNaoDisponivelException;
 import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
 import br.ufal.ic.p2.wepayu.exception.BancoInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.ComandoAposEncerrarSistemaException;
@@ -214,6 +215,8 @@ public class Facade {
             case "taxaSindical":
                 return Formatador.valor(
                         empregado.getMembroSindicato().getTaxaSindical());
+            case "agendaPagamento":
+                return empregado.getAgendaPagamento().getDescricao();
             default:
                 throw new AtributoNaoExisteException();
         }
@@ -252,7 +255,8 @@ public class Facade {
             ValorSindicalizadoInvalidoException,
             IdentificacaoSindicatoInvalidaException,
             TaxaSindicalInvalidaException,
-            MetodoPagamentoInvalidoException {
+            MetodoPagamentoInvalidoException,
+            AgendaNaoDisponivelException {
 
         switch (atributo) {
             case "nome":
@@ -280,6 +284,9 @@ public class Facade {
                 break;
             case "sindicalizado":
                 alterarSindicalizacao(emp, valor, null, null);
+                break;
+            case "agendaPagamento":
+                sistema.alterarAgendaPagamento(emp, valor);
                 break;
             default:
                 throw new AtributoNaoExisteException();

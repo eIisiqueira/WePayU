@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import br.ufal.ic.p2.wepayu.exception.AgendaNaoDisponivelException;
 import br.ufal.ic.p2.wepayu.exception.ComandoAposEncerrarSistemaException;
 import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.DataInvalidaException;
@@ -41,6 +42,7 @@ import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.TaxaSindicalInvalidaException;
 import br.ufal.ic.p2.wepayu.exception.ValorTaxaServicoInvalidoException;
 import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
+import br.ufal.ic.p2.wepayu.models.AgendaPagamento;
 import br.ufal.ic.p2.wepayu.models.Contracheque;
 import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.models.MembroSindicato;
@@ -75,11 +77,15 @@ public class SistemaFolha {
     private final Map<String, Empregado> empregados = new LinkedHashMap<>();
     private int proximoId = 1;
 
+    /** Agendas de pagamento disponíveis, indexadas pela descrição. */
+    private final Map<String, AgendaPagamento> agendas = new LinkedHashMap<>();
+
     private final Deque<byte[]> pilhaUndo = new ArrayDeque<>();
     private final Deque<byte[]> pilhaRedo = new ArrayDeque<>();
     private boolean encerrado;
 
     public SistemaFolha() {
+        restaurarAgendasPadrao();
         carregar();
     }
 
@@ -252,6 +258,28 @@ public class SistemaFolha {
 
         byte[] estadoAnterior = criarSnapshot();
         empregados.put(emp, novo);
+        confirmarTransacao(estadoAnterior);
+    }
+
+    /**
+     * Atribui ao empregado uma das agendas de pagamento disponíveis.
+     *
+     * @throws AgendaNaoDisponivelException se a agenda não estiver cadastrada
+     */
+    public void alterarAgendaPagamento(String emp, String descricao)
+            throws IdentificacaoEmpregadoInvalidaException,
+            EmpregadoNaoExisteException,
+            AgendaNaoDisponivelException {
+
+        Empregado empregado = buscarEmpregado(emp);
+        AgendaPagamento agenda = agendas.get(descricao);
+
+        if (agenda == null) {
+            throw new AgendaNaoDisponivelException();
+        }
+
+        byte[] estadoAnterior = criarSnapshot();
+        empregado.alterarAgendaPagamento(agenda);
         confirmarTransacao(estadoAnterior);
     }
 
@@ -462,6 +490,7 @@ public class SistemaFolha {
 
         empregados.clear();
         proximoId = 1;
+        restaurarAgendasPadrao();
 
         File arquivo = new File(ARQUIVO_DADOS);
 
@@ -492,6 +521,7 @@ public class SistemaFolha {
 
             saida.writeObject(empregados);
             saida.writeInt(proximoId);
+            saida.writeObject(agendas);
 
         } catch (IOException e) {
             throw new PersistenciaException("Erro ao salvar dados.");
@@ -509,9 +539,12 @@ public class SistemaFolha {
         try (ObjectInputStream entrada = new ObjectInputStream(
                 new FileInputStream(arquivo))) {
 
-            // Mesma ordem usada em salvar(): empregados e depois próximo ID.
+            // Mesma ordem usada em salvar(): empregados, próximo ID e agendas.
             empregados.putAll((Map<String, Empregado>) entrada.readObject());
             proximoId = entrada.readInt();
+            agendas.clear();
+            agendas.putAll(
+                    (Map<String, AgendaPagamento>) entrada.readObject());
 
         } catch (IOException | ClassNotFoundException e) {
             throw new PersistenciaException("Erro ao carregar dados.");
@@ -573,6 +606,18 @@ public class SistemaFolha {
         }
     }
 
+    private void restaurarAgendasPadrao() {
+        agendas.clear();
+
+        for (AgendaPagamento agenda : new AgendaPagamento[] {
+                AgendaPagamento.semanalPadrao(),
+                AgendaPagamento.mensalPadrao(),
+                AgendaPagamento.bissemanalPadrao()}) {
+
+            agendas.put(agenda.getDescricao(), agenda);
+        }
+    }
+
     private void verificarAtivo() throws ComandoAposEncerrarSistemaException {
         if (encerrado) {
             throw new ComandoAposEncerrarSistemaException();
@@ -590,6 +635,7 @@ public class SistemaFolha {
 
             saida.writeObject(empregados);
             saida.writeInt(proximoId);
+            saida.writeObject(agendas);
             saida.flush();
 
             return bytes.toByteArray();
@@ -607,10 +653,14 @@ public class SistemaFolha {
             Map<String, Empregado> restaurados =
                     (Map<String, Empregado>) entrada.readObject();
             int proximoIdRestaurado = entrada.readInt();
+            Map<String, AgendaPagamento> agendasRestauradas =
+                    (Map<String, AgendaPagamento>) entrada.readObject();
 
             empregados.clear();
             empregados.putAll(restaurados);
             proximoId = proximoIdRestaurado;
+            agendas.clear();
+            agendas.putAll(agendasRestauradas);
 
         } catch (IOException | ClassNotFoundException e) {
             throw new PersistenciaException("Erro ao restaurar snapshot.");
