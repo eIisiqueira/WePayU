@@ -5,6 +5,10 @@ import br.ufal.ic.p2.wepayu.models.EmpregadoAssalariado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoHorista;
 import br.ufal.ic.p2.wepayu.models.EmpregadoComissionado;
 import br.ufal.ic.p2.wepayu.models.Contracheque;
+import br.ufal.ic.p2.wepayu.models.MembroSindicato;
+import br.ufal.ic.p2.wepayu.models.PagamentoBanco;
+import br.ufal.ic.p2.wepayu.models.PagamentoCorreios;
+import br.ufal.ic.p2.wepayu.models.PagamentoEmMaos;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,28 +23,28 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.PersistenciaException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoEmpregadoInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
-import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
-import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoMembroInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
-import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoADesfazerException;
-import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoARefazerException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNomeNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.PersistenciaException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoEmpregadoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.exception.DataInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoMembroInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.MembroNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoSindicatoDuplicadaException;
+import br.ufal.ic.p2.wepayu.exception.ValorTaxaServicoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.ContaCorrenteInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.NaoHaComandoADesfazerException;
+import br.ufal.ic.p2.wepayu.exception.NaoHaComandoARefazerException;
 
 
 import java.math.BigDecimal;
@@ -256,9 +260,8 @@ public class SistemaFolha {
     /**
      * Altera a situação sindical do empregado.
      *
-     * Ao sindicalizar, valida a identificação sindical e a taxa informada,
-     * impedindo também o uso de uma identificação já associada a outro
-     * empregado. Ao dessindicalizar, remove os dados sindicais atuais.
+     * Ao sindicalizar, cria a filiação (que valida identificação e taxa)
+     * e impede o uso de uma identificação já associada a outro empregado. Ao dessindicalizar, remove os dados sindicais atuais.
      *
      * @param emp identificador do empregado
      * @param sindicalizado nova situação sindical
@@ -283,52 +286,25 @@ public class SistemaFolha {
             return;
         }
 
-        if (idSindicato == null || idSindicato.isEmpty()) {
-            throw new IdentificacaoSindicatoInvalidaException();
-        }
-
-        if (taxaSindical == null || taxaSindical.isEmpty()) {
-            throw new TaxaSindicalInvalidaException(
-                    "Taxa sindical nao pode ser nula."
-            );
-        }
-
-        BigDecimal valorTaxaSindical;
-
-        try {
-            valorTaxaSindical = new BigDecimal(
-                    taxaSindical.replace(",", ".")
-            );
-        } catch (NumberFormatException e) {
-            throw new TaxaSindicalInvalidaException(
-                    "Taxa sindical deve ser numerica."
-            );
-        }
-
-        if (valorTaxaSindical.compareTo(BigDecimal.ZERO) < 0) {
-            throw new TaxaSindicalInvalidaException(
-                    "Taxa sindical deve ser nao-negativa."
-            );
-        }
+        MembroSindicato membro = new MembroSindicato(
+                idSindicato,
+                converterTaxaSindical(taxaSindical)
+        );
 
         for (Empregado outro : empregados.values()) {
             if (outro != empregado
-                    && outro.isSindicalizado()
-                    && idSindicato.equals(outro.getIdSindicato())) {
+                    && possuiIdentificacaoSindical(outro, idSindicato)) {
 
                 throw new IdentificacaoSindicatoDuplicadaException();
             }
         }
 
-        empregado.sindicalizar(
-                idSindicato,
-                valorTaxaSindical
-        );
+        empregado.sindicalizar(membro);
     }
 
     /**
-     * Localiza o empregado pela identificação sindical, converte os dados
-     * recebidos e delega o registro da taxa de serviço ao empregado.
+     * Localiza o membro pela identificação sindical, converte os dados
+     * recebidos e delega o registro da taxa de serviço à filiação.
      *
      * @param membro identificação do empregado no sindicato
      * @param data data da taxa de serviço
@@ -343,7 +319,8 @@ public class SistemaFolha {
             DataInvalidaException,
             ValorTaxaServicoInvalidoException {
 
-        Empregado empregado = buscarMembroSindicatoObrigatorio(membro);
+        MembroSindicato membroSindicato =
+                buscarMembroSindicatoObrigatorio(membro);
 
         LocalDate dataTaxa =
                 converterData(data, "Data invalida.");
@@ -351,7 +328,7 @@ public class SistemaFolha {
         BigDecimal valorTaxa =
                 converterValorTaxaServico(valor);
 
-        empregado.lancaTaxaServico(
+        membroSindicato.lancaTaxaServico(
                 dataTaxa,
                 valorTaxa
         );
@@ -375,11 +352,8 @@ public class SistemaFolha {
             EmpregadoNaoSindicalizadoException,
             DataInvalidaException {
 
-        Empregado empregado = buscarEmpregadoObrigatorio(emp);
-
-        if (!empregado.isSindicalizado()) {
-            throw new EmpregadoNaoSindicalizadoException();
-        }
+        MembroSindicato membro =
+                buscarEmpregadoObrigatorio(emp).getMembroSindicato();
 
         LocalDate inicio = converterData(
                 dataInicial,
@@ -393,7 +367,7 @@ public class SistemaFolha {
 
         validarIntervalo(inicio, fim);
 
-        return empregado.getTaxasServico(
+        return membro.getTaxasServico(
                 inicio,
                 fim
         );
@@ -939,7 +913,7 @@ public class SistemaFolha {
         return inicio + "=".repeat(127 - inicio.length());
     }
 
-    private Empregado buscarMembroSindicatoObrigatorio(String membro)
+    private MembroSindicato buscarMembroSindicatoObrigatorio(String membro)
             throws IdentificacaoMembroInvalidaException,
             MembroNaoExisteException {
 
@@ -948,13 +922,37 @@ public class SistemaFolha {
         }
 
         for (Empregado empregado : empregados.values()) {
-            if (empregado.isSindicalizado()
-                    && membro.equals(empregado.getIdSindicato())) {
-                return empregado;
+            if (possuiIdentificacaoSindical(empregado, membro)) {
+                return empregado.getSindicato().get();
             }
         }
 
         throw new MembroNaoExisteException();
+    }
+
+    private static boolean possuiIdentificacaoSindical(
+            Empregado empregado,
+            String identificacao
+    ) {
+        return empregado.getSindicato()
+                .map(membro -> membro.possuiIdentificacao(identificacao))
+                .orElse(false);
+    }
+
+    private BigDecimal converterTaxaSindical(String taxaSindical)
+            throws TaxaSindicalInvalidaException {
+
+        if (taxaSindical == null || taxaSindical.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return new BigDecimal(taxaSindical.replace(",", "."));
+        } catch (NumberFormatException e) {
+            throw new TaxaSindicalInvalidaException(
+                    "Taxa sindical deve ser numerica."
+            );
+        }
     }
 
     private Empregado buscarEmpregadoObrigatorio(String id)
@@ -1204,11 +1202,11 @@ public class SistemaFolha {
         switch (metodoPagamento) {
 
             case "emMaos":
-                empregado.configurarPagamentoEmMaos();
+                empregado.alterarMetodoPagamento(new PagamentoEmMaos());
                 return;
 
             case "correios":
-                empregado.configurarPagamentoCorreios();
+                empregado.alterarMetodoPagamento(new PagamentoCorreios());
                 return;
 
             case "banco":
@@ -1232,22 +1230,8 @@ public class SistemaFolha {
 
         Empregado empregado = buscarEmpregadoObrigatorio(emp);
 
-        if (banco == null || banco.isEmpty()) {
-            throw new BancoInvalidoException();
-        }
-
-        if (agencia == null || agencia.isEmpty()) {
-            throw new AgenciaInvalidaException();
-        }
-
-        if (contaCorrente == null || contaCorrente.isEmpty()) {
-            throw new ContaCorrenteInvalidaException();
-        }
-
-        empregado.configurarPagamentoBanco(
-                banco,
-                agencia,
-                contaCorrente
+        empregado.alterarMetodoPagamento(
+                new PagamentoBanco(banco, agencia, contaCorrente)
         );
     }
 

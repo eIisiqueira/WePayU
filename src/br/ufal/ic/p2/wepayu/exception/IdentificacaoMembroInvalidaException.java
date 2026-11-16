@@ -1,4 +1,4 @@
-package br.ufal.ic.p2.wepayu.Exception;
+package br.ufal.ic.p2.wepayu.exception;
 
 public class IdentificacaoMembroInvalidaException extends Exception {
 

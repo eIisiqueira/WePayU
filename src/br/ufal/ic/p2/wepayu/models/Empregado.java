@@ -4,22 +4,22 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
-import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
  * Classe base abstrata da hierarquia de empregados do sistema.
  *
- * Concentra os dados e comportamentos comuns aos diferentes tipos de
- * empregado e define operações que podem ser especializadas
- * polimorficamente pelas subclasses.
+ * Concentra os dados comuns aos diferentes tipos de empregado e define
+ * operações especializadas polimorficamente pelas subclasses. A associação
+ * sindical e o método de pagamento são delegados a {@link MembroSindicato}
+ * e {@link MetodoPagamento}.
  */
 
 public abstract class Empregado implements Serializable {
@@ -31,22 +31,15 @@ public abstract class Empregado implements Serializable {
     private String nome;
     private String endereco;
     private BigDecimal salario;
-    private boolean sindicalizado;
-    private String idSindicato;
-    private BigDecimal taxaSindical;
-    private final List<TaxaServico> taxasServico = new ArrayList<>();
-    private String metodoPagamento;
-    private String banco;
-    private String agencia;
-    private String contaCorrente;
+    private MembroSindicato sindicato;
+    private MetodoPagamento metodoPagamento;
 
     public Empregado(String id, String nome, String endereco, BigDecimal salario) {
         this.id = id;
         this.nome = nome;
         this.endereco = endereco;
         this.salario = salario;
-        this.sindicalizado = false;
-        this.metodoPagamento = "emMaos";
+        this.metodoPagamento = new PagamentoEmMaos();
     }
 
     public String getId() {
@@ -66,11 +59,22 @@ public abstract class Empregado implements Serializable {
     }
 
     public boolean isSindicalizado() {
-        return sindicalizado;
+        return sindicato != null;
     }
 
-    public String getIdSindicato() {
-        return idSindicato;
+    public Optional<MembroSindicato> getSindicato() {
+        return Optional.ofNullable(sindicato);
+    }
+
+    public MembroSindicato getMembroSindicato()
+            throws EmpregadoNaoSindicalizadoException {
+
+        return getSindicato()
+                .orElseThrow(EmpregadoNaoSindicalizadoException::new);
+    }
+
+    public MetodoPagamento getMetodoPagamento() {
+        return metodoPagamento;
     }
 
     public void setNome(String nome) {
@@ -85,96 +89,27 @@ public abstract class Empregado implements Serializable {
         this.salario = salario;
     }
 
-    public void configurarPagamentoEmMaos() {
-        this.metodoPagamento = "emMaos";
-        this.banco = null;
-        this.agencia = null;
-        this.contaCorrente = null;
+    public void alterarMetodoPagamento(MetodoPagamento metodoPagamento) {
+        this.metodoPagamento = Objects.requireNonNull(metodoPagamento);
     }
 
-    public void configurarPagamentoCorreios() {
-        this.metodoPagamento = "correios";
-        this.banco = null;
-        this.agencia = null;
-        this.contaCorrente = null;
-    }
-
-    public void configurarPagamentoBanco(
-            String banco,
-            String agencia,
-            String contaCorrente
-    ) {
-        this.metodoPagamento = "banco";
-        this.banco = banco;
-        this.agencia = agencia;
-        this.contaCorrente = contaCorrente;
-    }
-
-    public void setSindicalizado(boolean sindicalizado) {
-        this.sindicalizado = sindicalizado;
-    }
-
-    public void sindicalizar(String idSindicato, BigDecimal taxaSindical) {
-        this.sindicalizado = true;
-        this.idSindicato = idSindicato;
-        this.taxaSindical = taxaSindical;
+    public void sindicalizar(MembroSindicato sindicato) {
+        this.sindicato = Objects.requireNonNull(sindicato);
     }
 
     public void dessindicalizar() {
-        this.sindicalizado = false;
-        this.idSindicato = null;
-        this.taxaSindical = null;
+        this.sindicato = null;
     }
 
     /**
      * Copia para outro empregado o estado comum que deve ser preservado
-     * durante uma mudança de tipo.
-     *
-     * São preservadas as informações sindicais, taxas de serviço
-     * e dados do método de pagamento.
+     * durante uma mudança de tipo: filiação sindical e método de pagamento.
      *
      * @param destino empregado que receberá o estado comum
      */
     public void copiarEstadoComumPara(Empregado destino) {
-        destino.sindicalizado = this.sindicalizado;
-        destino.idSindicato = this.idSindicato;
-        destino.taxaSindical = this.taxaSindical;
-
-        destino.taxasServico.addAll(this.taxasServico);
-
+        destino.sindicato = this.sindicato;
         destino.metodoPagamento = this.metodoPagamento;
-        destino.banco = this.banco;
-        destino.agencia = this.agencia;
-        destino.contaCorrente = this.contaCorrente;
-    }
-
-    public void lancaTaxaServico(LocalDate data, BigDecimal valor) {
-        taxasServico.add(new TaxaServico(data, valor));
-    }
-
-    /**
-     * Soma as taxas de serviço registradas no período informado.
-     * A data inicial é incluída e a data final é excluída.
-     *
-     * @param dataInicial início inclusivo do período
-     * @param dataFinal fim exclusivo do período
-     * @return total das taxas de serviço
-     */
-    public BigDecimal getTaxasServico(
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) {
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (TaxaServico taxa : taxasServico) {
-            LocalDate data = taxa.getData();
-
-            if (!data.isBefore(dataInicial) && data.isBefore(dataFinal)) {
-                total = total.add(taxa.getValor());
-            }
-        }
-
-        return total;
     }
 
     public abstract String getTipo();
@@ -204,26 +139,20 @@ public abstract class Empregado implements Serializable {
 
     /**
      * Calcula o contracheque do empregado para a data informada,
-     * combinando o cálculo específico do tipo com os descontos comuns.
+     * combinando o cálculo específico do tipo com os descontos sindicais.
      *
      * @param dataPagamento data do pagamento
      * @return contracheque calculado
      */
     public Contracheque calcularContracheque(LocalDate dataPagamento) {
         Contracheque dados = calcularDadosFolha(dataPagamento);
+        BigDecimal bruto = dados.getSalarioBruto();
 
-        BigDecimal descontos = calcularDescontosAplicados(
-                dataPagamento,
-                dados.getSalarioBruto()
-        );
+        BigDecimal descontos = sindicato == null
+                ? BigDecimal.ZERO
+                : sindicato.calcularDescontos(this, dataPagamento, bruto);
 
-        BigDecimal salarioLiquido =
-                dados.getSalarioBruto().subtract(descontos);
-
-        return dados.comDeducoes(
-                descontos,
-                salarioLiquido
-        );
+        return dados.comDeducoes(descontos, bruto.subtract(descontos));
     }
 
     /**
@@ -238,67 +167,16 @@ public abstract class Empregado implements Serializable {
         return INICIO_CONTRATO_PADRAO;
     }
 
-    private BigDecimal calcularDescontosAplicados(
-            LocalDate dataPagamento,
-            BigDecimal salarioBrutoAtual
+    /**
+     * Indica se uma data pertence ao intervalo, com início inclusivo
+     * e fim exclusivo, regra usada pelos lançamentos de todos os tipos.
+     */
+    protected static boolean estaNoIntervalo(
+            LocalDate data,
+            LocalDate dataInicial,
+            LocalDate dataFinal
     ) {
-        if (!sindicalizado) {
-            return BigDecimal.ZERO;
-        }
-
-        LocalDate inicioContrato = dataInicioContrato();
-
-        if (inicioContrato == null || dataPagamento.isBefore(inicioContrato)) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal saldoPendente = BigDecimal.ZERO;
-        LocalDate inicioPeriodo = inicioContrato;
-        LocalDate data = inicioContrato;
-
-        // Reconstitui as deduções folha a folha para carregar apenas o saldo
-        // que não pôde ser descontado em pagamentos anteriores.
-        while (!data.isAfter(dataPagamento)) {
-            if (deveReceberEm(data)) {
-                int diasTaxaSindical = (int) ChronoUnit.DAYS.between(
-                        inicioPeriodo,
-                        data
-                ) + 1;
-
-                saldoPendente = saldoPendente.add(
-                        taxaSindical.multiply(
-                                BigDecimal.valueOf(diasTaxaSindical)
-                        )
-                );
-
-                saldoPendente = saldoPendente.add(
-                        getTaxasServico(
-                                inicioPeriodo,
-                                data.plusDays(1)
-                        )
-                );
-
-                BigDecimal salarioBruto = data.equals(dataPagamento)
-                        ? salarioBrutoAtual
-                        : calcularDadosFolha(data).getSalarioBruto();
-
-                BigDecimal descontoAplicado =
-                        saldoPendente.min(salarioBruto);
-
-                saldoPendente =
-                        saldoPendente.subtract(descontoAplicado);
-
-                if (data.equals(dataPagamento)) {
-                    return descontoAplicado;
-                }
-
-                inicioPeriodo = data.plusDays(1);
-            }
-
-            data = data.plusDays(1);
-        }
-
-        return BigDecimal.ZERO;
+        return !data.isBefore(dataInicial) && data.isBefore(dataFinal);
     }
 
     /**
@@ -308,18 +186,7 @@ public abstract class Empregado implements Serializable {
      * @return descrição utilizada no relatório da folha
      */
     public String descricaoPagamento() {
-        switch (metodoPagamento) {
-            case "correios":
-                return "Correios, " + endereco;
-
-            case "banco":
-                return banco
-                        + ", Ag. " + agencia
-                        + " CC " + contaCorrente;
-
-            default:
-                return "Em maos";
-        }
+        return metodoPagamento.descricao(endereco);
     }
 
     public String getAtributo(String atributo)
@@ -346,49 +213,28 @@ public abstract class Empregado implements Serializable {
                 throw new EmpregadoNaoComissionadoException();
 
             case "metodoPagamento":
-                return metodoPagamento;
+                return metodoPagamento.getTipo();
 
             case "banco":
-                validarPagamentoBanco();
-                return banco;
+                return metodoPagamento.getBanco();
 
             case "agencia":
-                validarPagamentoBanco();
-                return agencia;
+                return metodoPagamento.getAgencia();
 
             case "contaCorrente":
-                validarPagamentoBanco();
-                return contaCorrente;
+                return metodoPagamento.getContaCorrente();
 
             case "sindicalizado":
                 return String.valueOf(isSindicalizado());
 
             case "idSindicato":
-                validarSindicalizado();
-                return idSindicato;
+                return getMembroSindicato().getIdentificacao();
 
             case "taxaSindical":
-                validarSindicalizado();
-                return formatarValor(taxaSindical);
+                return formatarValor(getMembroSindicato().getTaxaSindical());
 
             default:
                 throw new AtributoNaoExisteException();
-        }
-    }
-
-    private void validarPagamentoBanco()
-            throws EmpregadoNaoRecebeEmBancoException {
-
-        if (!"banco".equals(metodoPagamento)) {
-            throw new EmpregadoNaoRecebeEmBancoException();
-        }
-    }
-
-    private void validarSindicalizado()
-            throws EmpregadoNaoSindicalizadoException {
-
-        if (!sindicalizado) {
-            throw new EmpregadoNaoSindicalizadoException();
         }
     }
 

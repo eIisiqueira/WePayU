@@ -7,10 +7,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoRecebeEmBancoException;
 
 /**
  * Representa um empregado comissionado, com salário base,
@@ -176,14 +176,4 @@ public class EmpregadoComissionado extends Empregado {
 
         return total;
     }
-
-    private boolean estaNoIntervalo(
-            LocalDate data,
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) {
-        return !data.isBefore(dataInicial)
-                && data.isBefore(dataFinal);
-    }
-
 }

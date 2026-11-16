@@ -200,14 +200,4 @@ public class EmpregadoHorista extends Empregado {
 
         return total;
     }
-
-    private boolean estaNoIntervalo(
-            LocalDate data,
-            LocalDate dataInicial,
-            LocalDate dataFinal
-    ) {
-        // Os testes consideram o início do intervalo inclusivo e o fim exclusivo.
-        return !data.isBefore(dataInicial)
-                && data.isBefore(dataFinal);
-    }
 }

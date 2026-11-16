@@ -1,40 +1,40 @@
 package br.ufal.ic.p2.wepayu;
 
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.SalarioInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.ComissaoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.SalarioInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.ComissaoInvalidaException;
 import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoAssalariado;
 import br.ufal.ic.p2.wepayu.models.EmpregadoHorista;
 import br.ufal.ic.p2.wepayu.models.EmpregadoComissionado;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoEmpregadoInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.AtributoNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNomeNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoEmpregadoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.AtributoNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNomeNaoExisteException;
 
 import java.math.BigDecimal;
 
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoHoristaException;
-import br.ufal.ic.p2.wepayu.Exception.DataInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.HorasInvalidasException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoComissionadoException;
-import br.ufal.ic.p2.wepayu.Exception.ValorVendaInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoMembroInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.MembroNaoExisteException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoSindicalizadoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoDuplicadaException;
-import br.ufal.ic.p2.wepayu.Exception.ValorTaxaServicoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoRecebeEmBancoException;
-import br.ufal.ic.p2.wepayu.Exception.ValorSindicalizadoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.IdentificacaoSindicatoInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.TaxaSindicalInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.MetodoPagamentoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.BancoInvalidoException;
-import br.ufal.ic.p2.wepayu.Exception.AgenciaInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.ContaCorrenteInvalidaException;
-import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoADesfazerException;
-import br.ufal.ic.p2.wepayu.Exception.NaoHaComandoARefazerException;
-import br.ufal.ic.p2.wepayu.Exception.ComandoAposEncerrarSistemaException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoHoristaException;
+import br.ufal.ic.p2.wepayu.exception.DataInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.HorasInvalidasException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoComissionadoException;
+import br.ufal.ic.p2.wepayu.exception.ValorVendaInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoMembroInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.MembroNaoExisteException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoSindicalizadoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoSindicatoDuplicadaException;
+import br.ufal.ic.p2.wepayu.exception.ValorTaxaServicoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.EmpregadoNaoRecebeEmBancoException;
+import br.ufal.ic.p2.wepayu.exception.ValorSindicalizadoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.IdentificacaoSindicatoInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.TaxaSindicalInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.MetodoPagamentoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.BancoInvalidoException;
+import br.ufal.ic.p2.wepayu.exception.AgenciaInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.ContaCorrenteInvalidaException;
+import br.ufal.ic.p2.wepayu.exception.NaoHaComandoADesfazerException;
+import br.ufal.ic.p2.wepayu.exception.NaoHaComandoARefazerException;
+import br.ufal.ic.p2.wepayu.exception.ComandoAposEncerrarSistemaException;
 
 /**
  * Ponto de entrada utilizado pelos testes de aceitação para acessar
